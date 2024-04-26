@@ -2,46 +2,76 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Tymon\JWTAuth\Contracts\JWTSubject;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail, JWTSubject
 {
+    use HasApiTokens;
     use HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
+    protected $table = 'users';
+
     protected $fillable = [
         'name',
         'email',
+        'phone',
         'password',
+        'subscription',
+        'stripe_id',
+        'ticket_count',
+        'promocode',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+    ];
+
+    public static function boot()
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        parent::boot();
+
+        static::creating(function ($user) {
+            $user->id = self::generateUniqueRandomBigInt();
+            $user->subscription = 0;
+            $user->stripe_id = 1;
+            $user->ticket_count = 0;
+            $user->promocode = 1;
+        });
     }
+
+    public static function generateUniqueRandomBigInt(): string
+    {
+        // Máximo permitido para bigint(20)
+        $maxBigInt = '9223372036854775807'; // 2^63 - 1
+
+        do {
+            // Gerar um número aleatório entre 0 e o máximo permitido para bigint(20)
+            $randomBigInt = random_int(0, $maxBigInt);
+            $idExists = self::where('id', $randomBigInt)->exists();
+        } while ($idExists);
+
+        // Converter o número para string
+        return strval($randomBigInt);
+    }
+
+    public function getJWTIdentifier()
+    {
+        return $this->getKey();
+    }
+
+    public function getJWTCustomClaims()
+    {
+        return [];
+    }
+
 }
