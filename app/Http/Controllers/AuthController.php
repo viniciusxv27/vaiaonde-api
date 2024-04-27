@@ -50,22 +50,15 @@ class AuthController extends Controller
 
     public function recoverPassword(Request $request)
     {
-        $request->validate([
-            'email' => 'required|string|email',
-        ]);
-
-        $user = User::where('email', $request->email)->first();
-
-        if (!$user) {
-            return response()->json(['message' => 'E-mail não encontrado'], 404);
-        }
-
-        $token = Password::createToken($user);
-
-        $resetPasswordNotification = new ResetPassword($token);
-        $user->notify($resetPasswordNotification);
-
-        return response()->json(null, 200);
+        $request->validate(['email' => 'required|email']);
+ 
+        $status = Password::sendResetLink(
+            $request->only('email')
+        );
+     
+        return $status === Password::RESET_LINK_SENT
+                    ? back()->with(['status' => __($status)])
+                    : back()->withErrors(['email' => __($status)]);
     }
 
     public function updateProfile(Request $request, $id)
@@ -76,20 +69,10 @@ class AuthController extends Controller
             return response()->json(['error' => 'Usuário não encontrado'], 404);
         }
 
-        // Verifique se o usuário autenticado é o proprietário do perfil
-        if ($request->user()->id !== $user->id) {
-            return response()->json(['error' => 'Acesso não autorizado'], 403);
-        }
-
         $validatedData = $request->validate([
             'name' => 'string|max:255',
             'email' => 'string|email|max:255|unique:users,email,' . $user->id,
             'phone' => 'nullable|string|max:20',
-            'password' => 'nullable|string|min:8|max:255',
-            'subscription' => 'nullable|string|max:255',
-            'stripe_id' => 'nullable|string|max:255',
-            'ticket_count' => 'nullable|integer',
-            'promocode' => 'nullable|string|max:255',
         ]);
 
         if (isset($validatedData['password'])) {
@@ -107,11 +90,6 @@ class AuthController extends Controller
 
         if (!$user) {
             return response()->json(['error' => 'Usuário não encontrado'], 404);
-        }
-
-        // Verifique se o usuário autenticado é o proprietário do perfil
-        if ($request->user()->id !== $user->id) {
-            return response()->json(['error' => 'Acesso não autorizado'], 403);
         }
 
         $user->delete();

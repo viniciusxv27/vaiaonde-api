@@ -10,7 +10,9 @@ use Illuminate\Support\Facades\Route;
 // Rotas de autenticação
 Route::post('/auth', [AuthController::class, 'register']); // Criação de conta
 Route::post('/auth/login', [AuthController::class, 'login']); // Entrar na conta
-Route::post('/auth/recover', [AuthController::class, 'recoverPassword']); // Recuperar senha
+Route::post('/auth/recover', [AuthController::class, 'recoverPassword'])->name('password.email');
+
+; // Recuperar senha
 
 // Rotas de perfil de usuário
 Route::put('/auth/{id}', [AuthController::class, 'updateProfile']); // Alterar perfil de usuário
