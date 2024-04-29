@@ -72,14 +72,11 @@ class AuthController extends Controller
 
         if ($token) {
             try {
-                // Decodifica o token JWT para obter as informações do payload
                 $payload = JWTAuth::setToken($token)->getPayload();
 
-                // Verifica se o token é válido e se possui o campo "sub"
                 if ($payload && $payload->get('sub')) {
                     $userId = $payload->get('sub');
 
-                    // Busca o usuário pelo ID obtido do token
                     $user = User::find($userId);
 
                     if ($user) {
@@ -88,15 +85,15 @@ class AuthController extends Controller
                             'email' => 'string|email|max:255|unique:users,email,' . $user->id,
                             'phone' => 'nullable|string|max:20',
                         ]);
-                
+
                         if (isset($validatedData['password'])) {
                             $validatedData['password'] = Hash::make($validatedData['password']);
                         }
-                
+
                         $user->update($validatedData);
-                
+
                         return response()->json(['message' => 'Perfil atualizado com sucesso'], 200);
-                                    } else {
+                    } else {
                         return response()->json(['error' => 'Usuário não encontrado'], 404);
                     }
                 } else {
@@ -116,15 +113,38 @@ class AuthController extends Controller
 
     public function deleteProfile(Request $request, $id)
     {
-        $user = User::find($id);
 
-        if (!$user) {
-            return response()->json(['error' => 'Usuário não encontrado'], 404);
+        $token = $request->bearerToken();
+
+        if ($token) {
+            try {
+                $payload = JWTAuth::setToken($token)->getPayload();
+
+                if ($payload && $payload->get('sub')) {
+                    $userId = $payload->get('sub');
+
+                    $user = User::find($userId);
+
+                    if ($user) {
+                        $user->delete();
+
+                        return response()->json(['message' => 'Perfil removido com sucesso'], 200);
+                    } else {
+                        return response()->json(['error' => 'Usuário não encontrado'], 404);
+                    }
+                } else {
+                    return response()->json(['error' => 'Token de autorização inválido'], 401);
+                }
+            } catch (\Tymon\JWTAuth\Exceptions\TokenExpiredException $e) {
+                return response()->json(['error' => 'Token expirado'], 401);
+            } catch (\Tymon\JWTAuth\Exceptions\TokenInvalidException $e) {
+                return response()->json(['error' => 'Token inválido'], 401);
+            } catch (\Tymon\JWTAuth\Exceptions\JWTException $e) {
+                return response()->json(['error' => 'Erro ao processar o token'], 500);
+            }
+        } else {
+            return response()->json(['error' => 'Token de autorização ausente'], 401);
         }
-
-        $user->delete();
-
-        return response()->json(['message' => 'Perfil removido com sucesso'], 200);
     }
 
 
