@@ -2,10 +2,13 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\PlaceController;
 use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\SubscriptionController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/user', [UserController::class, 'show']); // Lista informações do Usuário
 
 // Rotas de autenticação
 Route::post('/auth', [AuthController::class, 'register']); // Criação de conta
@@ -15,7 +18,7 @@ Route::post('/auth/recover', [AuthController::class, 'recoverPassword'])->name('
 ; // Recuperar senha
 
 // Rotas de perfil de usuário
-Route::put('/auth/{id}', [AuthController::class, 'updateProfile']); // Alterar perfil de usuário
+Route::put('/auth', [AuthController::class, 'updateProfile']); // Alterar perfil de usuário
 Route::delete('/auth/{id}', [AuthController::class, 'deleteProfile']); // Remover perfil de usuário
 
 // Rotas de estabelecimentos

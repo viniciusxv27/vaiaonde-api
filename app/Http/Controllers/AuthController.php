@@ -3,12 +3,13 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Password;
-use Illuminate\Auth\Notifications\ResetPassword;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Tymon\JWTAuth\Exceptions\JWTException;
+use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Facades\JWTAuth as FacadesJWTAuth;
+use Illuminate\Foundation\Auth\SendsPasswordResetEmails;
 
 class AuthController extends Controller
 {
@@ -27,7 +28,7 @@ class AuthController extends Controller
 
         $user = User::create($validatedData);
 
-        return response()->json(null , 200);
+        return response()->json(null, 200);
     }
 
     public function login(Request $request)
@@ -36,7 +37,7 @@ class AuthController extends Controller
             'email' => 'required|string|email',
             'password' => 'required|string',
         ]);
-    
+
         try {
             if (!$token = FacadesJWTAuth::attempt($credentials)) {
                 return response()->json(['error' => 'Unauthorized'], 401);
@@ -44,44 +45,73 @@ class AuthController extends Controller
         } catch (JWTException $e) {
             return response()->json(['error' => 'Could not create token'], 500);
         }
-    
+
         return response()->json(['token' => $token], 200);
     }
 
     public function recoverPassword(Request $request)
     {
+        // Validação dos dados
         $request->validate(['email' => 'required|email']);
- 
-        $status = Password::sendResetLink(
-            $request->only('email')
-        );
-     
-        return $status === Password::RESET_LINK_SENT
-                    ? back()->with(['status' => __($status)])
-                    : back()->withErrors(['email' => __($status)]);
+
+        // Enviar o e-mail de recuperação de senha
+        $response = Password::sendResetLink($request->only('email'));
+
+        // Verificar se o e-mail foi enviado com sucesso
+        if ($response === Password::RESET_LINK_SENT) {
+            return response()->json(['message' => 'E-mail de recuperação de senha enviado com sucesso.'], 200);
+        } else {
+            return response()->json(['error' => 'Falha ao enviar o e-mail de recuperação de senha.'], 500);
+        }
     }
 
-    public function updateProfile(Request $request, $id)
+    public function updateProfile(Request $request)
     {
-        $user = User::find($id);
 
-        if (!$user) {
-            return response()->json(['error' => 'Usuário não encontrado'], 404);
+        $token = $request->bearerToken();
+
+        if ($token) {
+            try {
+                // Decodifica o token JWT para obter as informações do payload
+                $payload = JWTAuth::setToken($token)->getPayload();
+
+                // Verifica se o token é válido e se possui o campo "sub"
+                if ($payload && $payload->get('sub')) {
+                    $userId = $payload->get('sub');
+
+                    // Busca o usuário pelo ID obtido do token
+                    $user = User::find($userId);
+
+                    if ($user) {
+                        $validatedData = $request->validate([
+                            'name' => 'string|max:255',
+                            'email' => 'string|email|max:255|unique:users,email,' . $user->id,
+                            'phone' => 'nullable|string|max:20',
+                        ]);
+                
+                        if (isset($validatedData['password'])) {
+                            $validatedData['password'] = Hash::make($validatedData['password']);
+                        }
+                
+                        $user->update($validatedData);
+                
+                        return response()->json(['message' => 'Perfil atualizado com sucesso'], 200);
+                                    } else {
+                        return response()->json(['error' => 'Usuário não encontrado'], 404);
+                    }
+                } else {
+                    return response()->json(['error' => 'Token de autorização inválido'], 401);
+                }
+            } catch (\Tymon\JWTAuth\Exceptions\TokenExpiredException $e) {
+                return response()->json(['error' => 'Token expirado'], 401);
+            } catch (\Tymon\JWTAuth\Exceptions\TokenInvalidException $e) {
+                return response()->json(['error' => 'Token inválido'], 401);
+            } catch (\Tymon\JWTAuth\Exceptions\JWTException $e) {
+                return response()->json(['error' => 'Erro ao processar o token'], 500);
+            }
+        } else {
+            return response()->json(['error' => 'Token de autorização ausente'], 401);
         }
-
-        $validatedData = $request->validate([
-            'name' => 'string|max:255',
-            'email' => 'string|email|max:255|unique:users,email,' . $user->id,
-            'phone' => 'nullable|string|max:20',
-        ]);
-
-        if (isset($validatedData['password'])) {
-            $validatedData['password'] = Hash::make($validatedData['password']);
-        }
-
-        $user->update($validatedData);
-
-        return response()->json(['message' => 'Perfil atualizado com sucesso'], 200);
     }
 
     public function deleteProfile(Request $request, $id)
