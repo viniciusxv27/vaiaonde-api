@@ -2,37 +2,30 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BannerController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\PlaceController;
 use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\SubscriptionController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/user', [UserController::class, 'show']); // Lista informações do Usuário
+Route::get('/banner', [BannerController::class, 'list']);
 
-// Rotas de autenticação
-Route::post('/auth', [AuthController::class, 'register']); // Criação de conta
-Route::post('/auth/login', [AuthController::class, 'login']); // Entrar na conta
+Route::get('/user', [UserController::class, 'show']);
+
+Route::post('/auth', [AuthController::class, 'register']); 
+Route::post('/auth/login', [AuthController::class, 'login']); 
 Route::post('/auth/recover', [AuthController::class, 'recoverPassword'])->name('password.email');
+Route::put('/auth', [AuthController::class, 'updateProfile']); 
+Route::delete('/auth/{id}', [AuthController::class, 'deleteProfile']);
 
-; // Recuperar senha
+Route::post('/place/{id}', [PlaceController::class, 'rate']); 
+Route::get('/place/{id}', [PlaceController::class, 'show']); 
+Route::get('/place', [PlaceController::class, 'list']);
+Route::get('/top', [PlaceController::class, 'listTop']);
 
-// Rotas de perfil de usuário
-Route::put('/auth', [AuthController::class, 'updateProfile']); // Alterar perfil de usuário
-Route::delete('/auth/{id}', [AuthController::class, 'deleteProfile']); // Remover perfil de usuário
+Route::get('/vouchers/{id}', [VoucherController::class, 'list']); 
+Route::post('/vouchers/{id}', [VoucherController::class, 'use']);
 
-// Rotas de estabelecimentos
-Route::post('/place/{id}', [PlaceController::class, 'rate']); // Classificar estabelecimentos
-Route::get('/place/{id}', [PlaceController::class, 'show']); // Página de estabelecimentos
-Route::get('/place', [PlaceController::class, 'list']); // Listar estabelecimentos
-
-// Rotas de destaques
-Route::get('/top', [PlaceController::class, 'listTop']); // Listar destaques
-
-// Rotas de cupons
-Route::get('/vouchers/{id}', [VoucherController::class, 'list']); // Listar cupons
-Route::post('/vouchers/{id}', [VoucherController::class, 'use']); // Usar cupom
-
-// Rotas de assinatura
-Route::post('/subscription/cancel/{id}', [SubscriptionController::class, 'cancel']); // Cancelar assinatura
-Route::post('/subscription/{id}', [SubscriptionController::class, 'buy']); // Comprar assinatura
+Route::post('/subscription/cancel/{id}', [SubscriptionController::class, 'cancel']);
+Route::post('/subscription/{id}', [SubscriptionController::class, 'buy']);
