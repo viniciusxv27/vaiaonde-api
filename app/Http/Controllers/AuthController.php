@@ -11,6 +11,7 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Facades\JWTAuth as FacadesJWTAuth;
 use Illuminate\Foundation\Auth\SendsPasswordResetEmails;
 
+
 class AuthController extends Controller
 {
     public function register(Request $request)
@@ -51,13 +52,10 @@ class AuthController extends Controller
 
     public function recoverPassword(Request $request)
     {
-        // Validação dos dados
         $request->validate(['email' => 'required|email']);
 
-        // Enviar o e-mail de recuperação de senha
         $response = Password::sendResetLink($request->only('email'));
 
-        // Verificar se o e-mail foi enviado com sucesso
         if ($response === Password::RESET_LINK_SENT) {
             return response()->json(['message' => 'E-mail de recuperação de senha enviado com sucesso.'], 200);
         } else {
