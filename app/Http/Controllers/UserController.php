@@ -11,19 +11,15 @@ class UserController extends Controller
 {
     public function show(Request $request)
     {
-        // Obtém o token de autorização do cabeçalho
         $token = $request->bearerToken();
 
         if ($token) {
             try {
-                // Decodifica o token JWT para obter as informações do payload
                 $payload = JWTAuth::setToken($token)->getPayload();
 
-                // Verifica se o token é válido e se possui o campo "sub"
                 if ($payload && $payload->get('sub')) {
                     $userId = $payload->get('sub');
 
-                    // Busca o usuário pelo ID obtido do token
                     $user = User::find($userId);
 
                     if ($user) {
