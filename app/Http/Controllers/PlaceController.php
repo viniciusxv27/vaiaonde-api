@@ -63,7 +63,7 @@ class PlaceController extends Controller
                 "ticket" => $place->ticket,
                 "ticket_count" => $place->ticket_count,
                 "hidden" => $place->hidden,
-                "rate" => $rate,
+                "rate" => number_format($rate, 2),
             ];
 
             $list[$count] = $data;
@@ -113,7 +113,7 @@ class PlaceController extends Controller
                 "card_image" => $top->card_image,
                 "name" => $top->name,
                 "categorie" => rtrim($categories, ", "),
-                "rate" => $rate,
+                "rate" => number_format($rate, 2),
             ];
 
             $list[$count] = $data;
