@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BannerController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\PlaceController;
+use App\Http\Controllers\RatingContoller;
 use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\SubscriptionController;
 use Illuminate\Support\Facades\Route;
@@ -20,9 +21,11 @@ Route::put('/auth', [AuthController::class, 'updateProfile']);
 Route::delete('/auth/{id}', [AuthController::class, 'deleteProfile']);
 
 Route::get('/places/{id}', [PlaceController::class, 'list']);
-Route::post('/place/{id}', [PlaceController::class, 'rate']); 
 Route::get('/place/{id}', [PlaceController::class, 'show']); 
+
 Route::get('/top', [PlaceController::class, 'listTop']);
+
+Route::post('/rating/{id}', [RatingContoller::class, 'rate']); 
 
 Route::get('/vouchers/{id}', [VoucherController::class, 'list']); 
 Route::post('/vouchers/{id}', [VoucherController::class, 'use']);

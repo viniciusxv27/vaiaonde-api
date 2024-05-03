@@ -21,6 +21,21 @@ class PlaceController extends Controller
         $count = 0;
 
         foreach ($places as $place) {
+            $ratings = Rating::where('place_id', $place->id)->get();
+            $countNotes = 0;
+            $notes = [];
+
+            foreach($ratings as $rating){
+                $notes[(int) $countNotes] = $rating->rate;
+                $countNotes++;
+            }
+
+            if($countNotes == 0){
+                $countNotes = 1;
+            }
+
+            $rate = array_sum($notes)/$countNotes;
+
             $citys = City::where('id', $place->city_id)->get();
 
             foreach($citys as $city){
@@ -38,7 +53,6 @@ class PlaceController extends Controller
                 }
             }
 
-
             $data = [
                 "id" => $place->id,
                 "name" => $place->name,
@@ -49,6 +63,7 @@ class PlaceController extends Controller
                 "ticket" => $place->ticket,
                 "ticket_count" => $place->ticket_count,
                 "hidden" => $place->hidden,
+                "rate" => $rate,
             ];
 
             $list[$count] = $data;
@@ -67,6 +82,21 @@ class PlaceController extends Controller
         $count = 0;
         
         foreach ($tops as $top) {
+            $ratings = Rating::where('place_id', $top->id)->get();
+            $countNotes = 0;
+            $notes = [];
+
+            foreach($ratings as $rating){
+                $notes[(int) $countNotes] = $rating->rate;
+                $countNotes++;
+            }
+
+            if($countNotes == 0){
+                $countNotes = 1;
+            }
+
+            $rate = array_sum($notes)/$countNotes;
+
             $listCategories = json_decode($top->categories_ids, true);
             $categories = '';
 
@@ -83,6 +113,7 @@ class PlaceController extends Controller
                 "card_image" => $top->card_image,
                 "name" => $top->name,
                 "categorie" => rtrim($categories, ", "),
+                "rate" => $rate,
             ];
 
             $list[$count] = $data;
@@ -97,9 +128,6 @@ class PlaceController extends Controller
         $place = Place::where('id', $id)->get();
 
         return response()->json(['place' => $place], 200);
-    }
-    public function rate(Request $request, $id)
-    {
     }
 
 }
