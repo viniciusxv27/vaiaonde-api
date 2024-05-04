@@ -28,9 +28,9 @@ Route::get('/top', [PlaceController::class, 'listTop']);
 
 Route::post('/rating/{id}', [RatingContoller::class, 'rate']); 
 
-Route::post('/citys', [FilterController::class, 'city']); 
+Route::get('/citys', [FilterController::class, 'city']); 
 
-Route::post('/categories', [FilterController::class, 'categorie']); 
+Route::get('/categories/{id}', [FilterController::class, 'categorie']); 
 
 Route::get('/vouchers/{id}', [VoucherController::class, 'list']); 
 Route::post('/vouchers/{id}', [VoucherController::class, 'use']);
