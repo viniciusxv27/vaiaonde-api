@@ -7,6 +7,7 @@ use App\Models\City;
 use App\Models\Categorie;
 use App\Models\Rating;
 use App\Models\Coords;
+use App\Models\Hourly;
 
 use Illuminate\Http\Request;
 
@@ -18,57 +19,37 @@ class PlaceController extends Controller
         $places = Place::where('tipe_id', $id)->get();
 
         $list = [];
-        $data = [];
-        $count = 0;
 
         foreach ($places as $place) {
-            $ratings = Rating::where('place_id', $place->id)->get();
-            $countNotes = 0;
-            $notes = [];
+            $ratings = Rating::where('place_id', $place->id)->pluck('rate')->toArray();
 
-            foreach($ratings as $rating){
-                $notes[(int) $countNotes] = $rating->rate;
-                $countNotes++;
-            }
+            $rate = count($ratings) > 0 ? array_sum($ratings) / count($ratings) : 0;
 
-            if($countNotes == 0){
-                $countNotes = 1;
-            }
-
-            $rate = array_sum($notes)/$countNotes;
-
-            $citys = City::where('id', $place->city_id)->get();
-
-            foreach($citys as $city){
-                $cityName = $city->name;
-            }
+            $cityName = City::where('id', $place->city_id)->value('name');
             
-            
-            $coordsData = Coords::where('place_id', $place->id)->get();
+            $coordsData = Coords::where('place_id', $place->id)->first();
 
-            foreach($coordsData as $coord){
+            if ($coordsData) {
                 $coords = [
-                    "lat" => $coord->latitude, 
-                    "long" => $coord->longitude
+                    "lat" => $coordsData->latitude,
+                    "long" => $coordsData->longitude
+                ];
+            } else {
+                $coords = [
+                    "lat" => null,
+                    "long" => null
                 ];
             }
 
             $listCategories = json_decode($place->categories_ids, true);
-            $categories = '';
 
-            foreach($listCategories as $ids){
-                $categorieTemp = Categorie::where('id', $ids)->get();
-
-                foreach($categorieTemp as $categorie){
-                    $categories .= $categorie->name . ', ' ;
-                }
-            }
+            $categories = Categorie::whereIn('id', $listCategories)->pluck('name')->implode(', '); 
 
             $data = [
                 "id" => $place->id,
                 "name" => $place->name,
                 "card_image" => $place->card_image,
-                "categorie" => rtrim($categories, ", "),
+                "categorie" => $categories,
                 "city" => $cityName,
                 "logo" => $place->logo,
                 "ticket" => $place->ticket,
@@ -76,65 +57,45 @@ class PlaceController extends Controller
                 "hidden" => $place->hidden,
                 "rate" => number_format($rate, 2),
                 "coords" => $coords,
+                "hourly" => '1'
             ];
 
-            $list[$count] = $data;
-
-            $count++;
+            $list[] = $data;
         }
 
         return response()->json(['places' => $list], 200);
     }
+    
     public function listTop(Request $request)
     {
         $tops = Place::where('top', 1)->get();
         
         $list = [];
-        $data = [];
-        $count = 0;
         
         foreach ($tops as $top) {
-            $ratings = Rating::where('place_id', $top->id)->get();
-            $countNotes = 0;
-            $notes = [];
+            $ratings = Rating::where('place_id', $top->id)->pluck('rate')->toArray();
 
-            foreach($ratings as $rating){
-                $notes[(int) $countNotes] = $rating->rate;
-                $countNotes++;
-            }
-
-            if($countNotes == 0){
-                $countNotes = 1;
-            }
-
-            $rate = array_sum($notes)/$countNotes;
+            $rate = count($ratings) > 0 ? array_sum($ratings) / count($ratings) : 0;
 
             $listCategories = json_decode($top->categories_ids, true);
-            $categories = '';
 
-            foreach($listCategories as $ids){
-                $categorieTemp = Categorie::where('id', $ids)->get();
-
-                foreach($categorieTemp as $categorie){
-                    $categories .= $categorie->name . ', ' ;
-                }
-            }
+            $categories = Categorie::whereIn('id', $listCategories)->pluck('name')->implode(', '); 
 
             $data = [
                 "id" => $top->id,
                 "card_image" => $top->card_image,
                 "name" => $top->name,
-                "categorie" => rtrim($categories, ", "),
+                "categorie" => $categories,
                 "rate" => number_format($rate, 2),
             ];
 
-            $list[$count] = $data;
+            $list[] = $data;
 
-            $count++;
         }
     
         return response()->json(['tops' => $list], 200);
     }
+
     public function show(Request $request, $id)
     {
         $place = Place::where('id', $id)->get();

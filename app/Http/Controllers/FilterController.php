@@ -12,36 +12,35 @@ class FilterController extends Controller
     public function city(Request $request)
     {
         $citys = City::all();
-        $cityList = [];
-        $count = 0;
+
+        $list = [];
 
         foreach($citys as $city){
-            $cityList[$count] = [
+            $data = [
                 "id" => $city->id,
                 "name" => $city->name,
             ];
 
-            $count++;
+            $list[] = $data;
         }
 
-        return response()->json(['citys' => $cityList], 200);
+        return response()->json(['citys' => $list], 200);
     }
     
     public function categorie(Request $request, $id)
     {
         $categories = Categorie::where('tipe_id', $id)->get();
-        $categoryList = [];
-        $count = 0;
+        $list = [];
 
         foreach($categories as $categorie){
-            $categoryList[$count] = [
+            $data = [
                 "id" => $categorie->id,
                 "name" => $categorie->name
             ];
 
-            $count++;
+            $list[] = $data;
         }
 
-        return response()->json(['categories' => $categoryList], 200);
+        return response()->json(['categories' => $list], 200);
     }
 }
