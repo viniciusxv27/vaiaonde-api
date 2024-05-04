@@ -6,6 +6,7 @@ use App\Models\Place;
 use App\Models\City;
 use App\Models\Categorie;
 use App\Models\Rating;
+use App\Models\Coords;
 
 use Illuminate\Http\Request;
 
@@ -41,6 +42,16 @@ class PlaceController extends Controller
             foreach($citys as $city){
                 $cityName = $city->name;
             }
+            
+            
+            $coordsData = Coords::where('place_id', $place->id)->get();
+
+            foreach($coordsData as $coord){
+                $coords = [
+                    "lat" => $coord->latitude, 
+                    "long" => $coord->longitude
+                ];
+            }
 
             $listCategories = json_decode($place->categories_ids, true);
             $categories = '';
@@ -64,6 +75,7 @@ class PlaceController extends Controller
                 "ticket_count" => $place->ticket_count,
                 "hidden" => $place->hidden,
                 "rate" => number_format($rate, 2),
+                "coords" => $coords,
             ];
 
             $list[$count] = $data;
