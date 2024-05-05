@@ -24,10 +24,13 @@ class PlaceController extends Controller
             $hours = Hourly::where('place_id', $place->id)->get();
 
             $dataHour = [];
-
+            
             for ($day = 1; $day <= 7; $day++) {
-                $dataHour[date('D', strtotime("Sunday +{$day} days"))] = $hours->firstWhere('day', $day);
-            }
+                $dataHour[date('D', strtotime("Sunday +{$day} days"))] = [
+                    "open" => $hours->where('day', $day)->pluck('open'),
+                    "close" => $hours->where('day', $day)->pluck('close'),
+                ];
+            }            
 
             $ratings = Rating::where('place_id', $place->id)->pluck('rate')->toArray();
 
