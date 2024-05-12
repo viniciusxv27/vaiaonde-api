@@ -28,6 +28,7 @@ class UserController extends Controller
                             "email" => $user->email,
                             "birthday" => $user->birthday,
                             "phone" => $user->phone,
+                            "stripe_id" => $user->stripe_id,
                             "subscription" => $user->subscription,
                             "ticket_count" => $user->ticket_count,
                             "promocode" => $user->promocode,

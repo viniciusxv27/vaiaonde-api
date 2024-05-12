@@ -10,6 +10,7 @@
         "laravel/framework": "^11.0",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",
+        "stripe/stripe-php": "^14.6",
         "tymon/jwt-auth": "^2.1"
     },
     "require-dev": {

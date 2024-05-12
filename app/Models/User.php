@@ -44,7 +44,6 @@ class User extends Authenticatable implements MustVerifyEmail, JWTSubject
         static::creating(function ($user) {
             $user->id = self::generateUniqueRandomBigInt();
             $user->subscription = 0;
-            $user->stripe_id = 1;
             $user->ticket_count = 0;
             $user->promocode = 1;
         });

@@ -10,12 +10,15 @@ use Tymon\JWTAuth\Exceptions\JWTException;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Facades\JWTAuth as FacadesJWTAuth;
 use Illuminate\Foundation\Auth\SendsPasswordResetEmails;
+use Stripe\StripeClient;
 
 
 class AuthController extends Controller
 {
     public function register(Request $request)
     {
+
+        $stripe = new StripeClient(env('STRIPE_SECRET'));
 
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
@@ -26,7 +29,16 @@ class AuthController extends Controller
         ]);
 
         $validatedData['password'] = Hash::make($validatedData['password']);
-
+        
+        
+        $customer = $stripe->customers->create([
+            'name' => $request['name'],
+            'email' => $request['email'],
+            'phone' => $request['phone']
+        ]);
+        
+        $validatedData['stripe_id'] = $customer['id'];
+        
         $user = User::create($validatedData);
 
         return response()->json(null, 200);
