@@ -2,14 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Support\Facades\Password;
 use App\Models\User;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Facades\JWTAuth as FacadesJWTAuth;
-use Illuminate\Foundation\Auth\SendsPasswordResetEmails;
 use Stripe\StripeClient;
 
 
@@ -64,7 +63,9 @@ class AuthController extends Controller
 
     public function recoverPassword(Request $request)
     {
-        $request->validate(['email' => 'required|email']);
+        $request->validate([
+            'email' => 'required|email'
+        ]);
 
         $response = Password::sendResetLink($request->only('email'));
 

@@ -26,6 +26,7 @@ class User extends Authenticatable implements MustVerifyEmail, JWTSubject
         'stripe_id',
         'ticket_count',
         'promocode',
+        'economy',
     ];
 
     protected $hidden = [
@@ -46,6 +47,7 @@ class User extends Authenticatable implements MustVerifyEmail, JWTSubject
             $user->subscription = 0;
             $user->ticket_count = 0;
             $user->promocode = 1;
+            $user->economy = 0;
         });
     }
 

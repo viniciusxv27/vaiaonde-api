@@ -32,7 +32,7 @@ class UserController extends Controller
                             "subscription" => $user->subscription,
                             "ticket_count" => $user->ticket_count,
                             "promocode" => $user->promocode,
-                            "economy" => 0
+                            "economy" => $user->economy,
                         ];
 
                         return response()->json(['user' => $data], 200);

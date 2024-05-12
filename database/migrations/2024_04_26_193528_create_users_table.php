@@ -15,10 +15,11 @@ class CreateUsersTable extends Migration
             $table->string('birthday');
             $table->string('phone')->nullable();
             $table->string('password');
-            $table->string('subscription')->nullable();
-            $table->string('stripe_id')->nullable();
-            $table->integer('ticket_count')->nullable();
-            $table->string('promocode')->nullable();
+            $table->string('subscription');
+            $table->string('stripe_id');
+            $table->integer('ticket_count');
+            $table->string('promocode');
+            $table->string('economy');
             $table->rememberToken();
             $table->timestamps();
         });
