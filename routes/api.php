@@ -35,5 +35,5 @@ Route::get('/categories/{id}', [FilterController::class, 'categorie']);
 Route::get('/vouchers/{id}', [VoucherController::class, 'list']); 
 Route::post('/vouchers/{id}', [VoucherController::class, 'use']);
 
-Route::post('/subscription/cancel/{id}', [SubscriptionController::class, 'cancel']);
-Route::post('/subscription/{id}', [SubscriptionController::class, 'buy']);
+Route::post('/subscription/cancel', [SubscriptionController::class, 'cancel']);
+Route::post('/subscription', [SubscriptionController::class, 'buy']);
