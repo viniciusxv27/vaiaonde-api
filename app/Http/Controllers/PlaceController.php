@@ -15,8 +15,15 @@ class PlaceController extends Controller
 {
     public function list(Request $request, $id)
     {
+        $search = $request->query('search');
 
-        $places = Place::where('tipe_id', $id)->get();
+        $query = Place::where('tipe_id', $id);
+
+        if (!empty($search)) {
+            $query->where('name', 'like', '%' . $search . '%');
+        }
+
+        $places = $query->get();
 
         $list = [];
 
