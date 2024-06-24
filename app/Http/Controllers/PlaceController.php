@@ -13,11 +13,18 @@ use Illuminate\Http\Request;
 
 class PlaceController extends Controller
 {
-    public function list(Request $request, $id)
+    public function list(Request $request, $id = null)
     {
         $search = $request->query('search');
+        
+        $query = '';
 
-        $query = Place::where('tipe_id', $id);
+        if($id == null){
+            $query = Place::where('hidden', 0);
+        } else{
+            $query = Place::where('tipe_id', $id);
+        }
+
 
         if (!empty($search)) {
             $query->where('name', 'like', '%' . $search . '%');

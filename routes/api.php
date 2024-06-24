@@ -21,6 +21,7 @@ Route::post('/auth/recover', [AuthController::class, 'recoverPassword'])->name('
 Route::put('/auth', [AuthController::class, 'updateProfile']); 
 Route::delete('/auth/{id}', [AuthController::class, 'deleteProfile']);
 
+Route::get('/places', [PlaceController::class, 'list']);
 Route::get('/places/{id}', [PlaceController::class, 'list']);
 Route::get('/place/{id}', [PlaceController::class, 'show']); 
 
