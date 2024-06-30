@@ -6,6 +6,7 @@ use App\Http\Controllers\BannerController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\PlaceController;
 use App\Http\Controllers\RatingContoller;
+use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\FilterController;
 use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\SubscriptionController;
@@ -38,3 +39,7 @@ Route::post('/vouchers/{id}', [VoucherController::class, 'use']);
 
 Route::post('/subscription/cancel', [SubscriptionController::class, 'cancel']);
 Route::post('/subscription', [SubscriptionController::class, 'buy']);
+
+Route::get('/favorites', [FavoriteController::class, 'list']);
+Route::post('/favorite/{id}', [FavoriteController::class, 'add']); 
+Route::delete('/favorite/{id}', [FavoriteController::class, 'delete']);
