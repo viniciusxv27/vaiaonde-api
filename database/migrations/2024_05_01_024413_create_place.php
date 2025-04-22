@@ -24,9 +24,6 @@ return new class extends Migration
             $table->string('location_url');
             $table->string('location');
             $table->string('uber_url', 500);
-            $table->boolean('ticket');
-            $table->float('ticket_value');
-            $table->integer('ticket_count');
             $table->boolean('hidden');
             $table->tinyInteger('tipe_id');
             $table->boolean('top');

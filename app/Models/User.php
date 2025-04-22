@@ -23,9 +23,8 @@ class User extends Authenticatable implements MustVerifyEmail, JWTSubject
         'phone',
         'password',
         'subscription',
-        'stripe_id',
-        'ticket_count',
-        'promocode',
+        'payment_id',
+        'score',
         'economy',
     ];
 
