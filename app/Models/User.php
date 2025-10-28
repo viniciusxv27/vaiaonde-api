@@ -21,11 +21,20 @@ class User extends Authenticatable implements MustVerifyEmail, JWTSubject
         'email',
         'birthday',
         'phone',
+        'cpf',
         'password',
         'subscription',
         'payment_id',
         'score',
         'economy',
+        'is_admin',
+        'stripe_id',
+        'promocode',
+        'ticket_count',
+        'role',
+        'wallet_balance',
+        'pix_key',
+        'abacatepay_customer_id',
     ];
 
     protected $hidden = [
@@ -74,6 +83,101 @@ class User extends Authenticatable implements MustVerifyEmail, JWTSubject
     public function getJWTCustomClaims()
     {
         return [];
+    }
+
+    public function vouchers()
+    {
+        return $this->hasMany(UserVoucher::class, 'user_id');
+    }
+
+    public function usedVouchers()
+    {
+        return $this->hasMany(UserVoucher::class, 'user_id')->where('used', true);
+    }
+
+    public function availableVouchers()
+    {
+        return $this->hasMany(UserVoucher::class, 'user_id')->where('used', false);
+    }
+
+    public function videos()
+    {
+        return $this->hasMany(Video::class, 'user_id');
+    }
+
+    public function ownedPlaces()
+    {
+        return $this->hasMany(Place::class, 'owner_id');
+    }
+
+    public function proposals()
+    {
+        return $this->hasMany(Proposal::class, 'influencer_id');
+    }
+
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class, 'user_id');
+    }
+
+    public function partnerSubscription()
+    {
+        return $this->hasOne(PartnerSubscription::class)->where('status', 'active')->latest();
+    }
+
+    public function chatsAsInfluencer()
+    {
+        return $this->hasMany(Chat::class, 'influencer_id');
+    }
+
+    public function isComum()
+    {
+        return $this->role === 'comum';
+    }
+
+    public function isAssinante()
+    {
+        return $this->role === 'assinante' || $this->subscription;
+    }
+
+    public function isProprietario()
+    {
+        return $this->role === 'proprietario';
+    }
+
+    public function isInfluenciador()
+    {
+        return $this->role === 'influenciador';
+    }
+
+    public function hasWalletAccess()
+    {
+        return $this->isProprietario() || $this->isInfluenciador();
+    }
+
+    public function roulettePlays()
+    {
+        return $this->hasMany(RoulettePlay::class, 'user_id');
+    }
+
+    public function subscriptionPlan()
+    {
+        return $this->belongsTo(SubscriptionPlan::class, 'subscription_plan_id');
+    }
+
+    public function canSpinRoulette()
+    {
+        return $this->roulette_spins_available > 0;
+    }
+
+    public function canGetDailySpin()
+    {
+        if (!$this->last_daily_spin) {
+            return true;
+        }
+
+        $lastSpin = \Carbon\Carbon::parse($this->last_daily_spin);
+        return $lastSpin->diffInDays(now()) >= 1;
     }
 
 }

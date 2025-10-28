@@ -1,0 +1,448 @@
+{
+  "info": {
+    "name": "Vá!Aonde API",
+    "description": "Coleção completa de endpoints da API Vá!Aonde com sistema de clube, vouchers e painel admin",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000/api",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Autenticação",
+      "item": [
+        {
+          "name": "Login Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"vinicius8cm@gmail.com\",\n  \"password\": \"senha123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Registrar Usuário",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"João Silva\",\n  \"email\": \"joao@example.com\",\n  \"password\": \"senha123\",\n  \"phone\": \"11999999999\",\n  \"birthday\": \"1990-01-01\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth",
+              "host": ["{{base_url}}"],
+              "path": ["auth"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Clube",
+      "item": [
+        {
+          "name": "Info do Clube",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/club/info",
+              "host": ["{{base_url}}"],
+              "path": ["club", "info"]
+            }
+          }
+        },
+        {
+          "name": "Benefícios do Clube",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/club/benefits",
+              "host": ["{{base_url}}"],
+              "path": ["club", "benefits"]
+            }
+          }
+        },
+        {
+          "name": "Assinar Clube",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/subscription",
+              "host": ["{{base_url}}"],
+              "path": ["subscription"]
+            }
+          }
+        },
+        {
+          "name": "Cancelar Assinatura",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/subscription/cancel",
+              "host": ["{{base_url}}"],
+              "path": ["subscription", "cancel"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Vouchers",
+      "item": [
+        {
+          "name": "Listar Vouchers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/vouchers/1",
+              "host": ["{{base_url}}"],
+              "path": ["vouchers", "1"]
+            }
+          }
+        },
+        {
+          "name": "Resgatar Voucher",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/vouchers/1",
+              "host": ["{{base_url}}"],
+              "path": ["vouchers", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Dashboard",
+      "item": [
+        {
+          "name": "Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "dashboard"]
+            }
+          }
+        },
+        {
+          "name": "Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/analytics",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "analytics"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Places",
+      "item": [
+        {
+          "name": "Listar Places",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/places?per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "places"],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "15"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Criar Place",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Restaurante Novo\",\n  \"city_id\": 1,\n  \"card_image\": \"https://example.com/image.jpg\",\n  \"logo\": \"https://example.com/logo.jpg\",\n  \"categories_ids\": \"1,2,3\",\n  \"phone\": \"11999999999\",\n  \"location\": \"Rua Exemplo, 123\",\n  \"top\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/places",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "places"]
+            }
+          }
+        },
+        {
+          "name": "Atualizar Place",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Restaurante Atualizado\",\n  \"top\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/places/1",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "places", "1"]
+            }
+          }
+        },
+        {
+          "name": "Deletar Place",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/places/1",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "places", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Vouchers",
+      "item": [
+        {
+          "name": "Listar Vouchers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/vouchers",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "vouchers"]
+            }
+          }
+        },
+        {
+          "name": "Criar Voucher",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"place_id\": 1,\n  \"title\": \"Happy Hour 2x1\",\n  \"description\": \"Compre uma bebida e ganhe outra\",\n  \"discount_type\": \"free_item\",\n  \"code\": \"HAPPY2X1\",\n  \"valid_from\": \"2024-11-01\",\n  \"valid_until\": \"2024-12-31\",\n  \"max_uses\": 100,\n  \"active\": true,\n  \"club_exclusive\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/vouchers",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "vouchers"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Usuários",
+      "item": [
+        {
+          "name": "Listar Usuários",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/users",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "users"]
+            }
+          }
+        },
+        {
+          "name": "Criar Usuário",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Maria Silva\",\n  \"email\": \"maria@example.com\",\n  \"password\": \"senha123\",\n  \"is_admin\": false,\n  \"subscription\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/users",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "users"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Banners",
+      "item": [
+        {
+          "name": "Listar Banners",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/banners",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "banners"]
+            }
+          }
+        },
+        {
+          "name": "Criar Banner",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"image_url\": \"https://example.com/banner.jpg\",\n  \"link_url\": \"https://example.com/promocao\",\n  \"active\": true,\n  \"order\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/banners",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "banners"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

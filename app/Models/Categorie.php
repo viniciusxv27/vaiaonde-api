@@ -16,7 +16,16 @@ class Categorie extends Model
 
     protected $fillable = [
         'name',
-        'class_id',
+        'tipe_id',
     ];
 
+    public function tipe()
+    {
+        return $this->belongsTo(Tipe::class);
+    }
+
+    public function places()
+    {
+        return $this->hasMany(Place::class, 'categorie_id');
+    }
 }

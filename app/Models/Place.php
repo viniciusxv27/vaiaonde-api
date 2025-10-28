@@ -15,7 +15,12 @@ class Place extends Model
     protected $table = 'place';
 
     protected $fillable = [
+        'owner_id',
         'name',
+        'type',
+        'subscription_id',
+        'is_active',
+        'deactivation_reason',
         'card_image',
         'review',
         'categories_ids',
@@ -29,6 +34,73 @@ class Place extends Model
         'hidden',
         'tipe_id',
         'top',
+        'image',
+        'description',
+        'address',
+        'latitude',
+        'longitude',
+        'category_id',
     ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+        'latitude' => 'decimal:8',
+        'longitude' => 'decimal:8',
+    ];
+
+    public function owner()
+    {
+        return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    public function city()
+    {
+        return $this->belongsTo(City::class, 'city_id');
+    }
+
+    public function subscription()
+    {
+        return $this->belongsTo(PartnerSubscription::class, 'subscription_id');
+    }
+
+    public function videos()
+    {
+        return $this->hasMany(Video::class, 'place_id');
+    }
+
+    public function proposals()
+    {
+        return $this->hasMany(Proposal::class, 'place_id');
+    }
+
+    public function chats()
+    {
+        return $this->hasMany(Chat::class, 'place_id');
+    }
+
+    public function images()
+    {
+        return $this->hasMany(PlaceImage::class)->orderBy('order');
+    }
+
+    public function primaryImage()
+    {
+        return $this->hasOne(PlaceImage::class)->where('is_primary', true);
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    public function scopeByType($query, $type)
+    {
+        return $query->where('type', $type);
+    }
+
+    public function hasActiveSubscription()
+    {
+        return $this->subscription && $this->subscription->isActive();
+    }
 
 }

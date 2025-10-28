@@ -4,8 +4,48 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "599d895e4b186e8dd1f60df0a3527c27",
+    "content-hash": "28a8b09971b578ace8fd398fb0e3d758",
     "packages": [
+        {
+            "name": "abacatepay/php-sdk",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AbacatePay/abacatepay-php-sdk.git",
+                "reference": "fef149eb9f7e03d5aa746732e909c4026b79bd0a"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/AbacatePay/abacatepay-php-sdk/zipball/fef149eb9f7e03d5aa746732e909c4026b79bd0a",
+                "reference": "fef149eb9f7e03d5aa746732e909c4026b79bd0a",
+                "shasum": ""
+            },
+            "require": {
+                "guzzlehttp/guzzle": "^7.9"
+            },
+            "require-dev": {
+                "pestphp/pest": "^3.6"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "AbacatePay\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "authors": [
+                {
+                    "name": "Julimar Junior",
+                    "email": "julimargomesjr@hotmail.com"
+                }
+            ],
+            "description": "An AbacatePay SDK for PHP",
+            "support": {
+                "issues": "https://github.com/AbacatePay/abacatepay-php-sdk/issues",
+                "source": "https://github.com/AbacatePay/abacatepay-php-sdk/tree/v1.0.0"
+            },
+            "time": "2024-12-08T03:32:25+00:00"
+        },
         {
             "name": "brick/math",
             "version": "0.12.3",

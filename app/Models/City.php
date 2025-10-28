@@ -18,4 +18,8 @@ class City extends Model
         'name',
     ];
 
+    public function places()
+    {
+        return $this->hasMany(Place::class, 'city_id');
+    }
 }
