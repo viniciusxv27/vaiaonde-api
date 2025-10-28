@@ -163,32 +163,51 @@
 
 <!-- Deposit Modal -->
 <div id="depositModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4" x-data="{ method: 'pix' }">
         <div class="p-6 border-b flex items-center justify-between">
-            <h3 class="text-xl font-semibold">Depositar via PIX</h3>
+            <h3 class="text-xl font-semibold">Adicionar Saldo</h3>
             <button onclick="closeDepositModal()" class="text-gray-400 hover:text-gray-600">
                 <i class="fas fa-times"></i>
             </button>
         </div>
         
         <div class="p-6">
-            <form method="POST" action="{{ route('influencer.wallet.deposit') }}">
+            <!-- Seleção de Método -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-2">Método de Pagamento</label>
+                <div class="grid grid-cols-2 gap-4">
+                    <button type="button" @click="method = 'pix'" :class="method === 'pix' ? 'border-[#FEB800] bg-[#FEB800] bg-opacity-10' : 'border-gray-300'" class="border-2 rounded-lg p-4 text-center hover:border-[#FEB800] transition">
+                        <i class="fas fa-qrcode text-2xl mb-2" :class="method === 'pix' ? 'text-[#FEB800]' : 'text-gray-600'"></i>
+                        <p class="font-medium">PIX</p>
+                        <p class="text-xs text-gray-500">Instantâneo</p>
+                    </button>
+                    <button type="button" @click="method = 'card'" :class="method === 'card' ? 'border-black bg-black bg-opacity-5' : 'border-gray-300'" class="border-2 rounded-lg p-4 text-center hover:border-black transition">
+                        <i class="fas fa-credit-card text-2xl mb-2" :class="method === 'card' ? 'text-black' : 'text-gray-600'"></i>
+                        <p class="font-medium">Cartão</p>
+                        <p class="text-xs text-gray-500">Crédito/Débito</p>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Formulário PIX -->
+            <form x-show="method === 'pix'" method="POST" action="{{ route('influencer.wallet.deposit') }}">
                 @csrf
+                <input type="hidden" name="payment_method" value="pix">
                 
                 <div class="mb-4">
                     <label class="block text-sm font-medium mb-2">Valor do Depósito</label>
                     <div class="relative">
                         <span class="absolute left-3 top-2.5 text-gray-500">R$</span>
                         <input type="number" name="amount" step="0.01" min="10" 
-                            class="w-full border rounded-lg pl-10 pr-4 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent" 
+                            class="w-full border rounded-lg pl-10 pr-4 py-2 focus:ring-2 focus:ring-[#FEB800] focus:border-transparent" 
                             placeholder="0,00" required>
                     </div>
                     <p class="text-xs text-gray-500 mt-1">Valor mínimo: R$ 10,00</p>
                 </div>
                 
-                <div class="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-                    <p class="text-sm text-green-800">
-                        <i class="fas fa-info-circle mr-1"></i>
+                <div class="bg-[#FEB800] bg-opacity-10 border border-[#FEB800] rounded-lg p-3 mb-4">
+                    <p class="text-sm text-black">
+                        <i class="fas fa-info-circle mr-1 text-[#FEB800]"></i>
                         <strong>Como funciona:</strong><br>
                         • Gere um QR Code PIX<br>
                         • Escaneie com o app do seu banco<br>
@@ -196,8 +215,36 @@
                     </p>
                 </div>
                 
-                <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition">
+                <button type="submit" class="w-full bg-[#FEB800] text-black py-3 rounded-lg font-bold hover:bg-black hover:text-white transition">
+                <button type="submit" class="w-full bg-[#FEB800] text-black py-3 rounded-lg font-bold hover:bg-black hover:text-white transition">
                     <i class="fas fa-qrcode mr-2"></i>Gerar QR Code PIX
+                </button>
+            </form>
+
+            <!-- Formulário Cartão -->
+            <form x-show="method === 'card'" id="depositForm" method="POST" action="{{ route('influencer.wallet.deposit') }}">
+                @csrf
+                <input type="hidden" name="payment_method" value="card">
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">Valor do Depósito</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-2.5 text-gray-500">R$</span>
+                        <input type="number" id="depositAmount" name="amount" step="0.01" min="10" 
+                            class="w-full border rounded-lg pl-10 pr-4 py-2 focus:ring-2 focus:ring-black focus:border-transparent" 
+                            placeholder="0,00" required>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Valor mínimo: R$ 10,00</p>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">Informações do Cartão</label>
+                    <div id="card-element" class="border rounded-lg p-3 bg-gray-50"></div>
+                    <div id="card-errors" class="text-red-500 text-xs mt-2"></div>
+                </div>
+                
+                <button type="submit" id="submitBtn" class="w-full bg-black text-white py-3 rounded-lg font-bold hover:bg-[#FEB800] hover:text-black transition border-2 border-black">
+                    <i class="fas fa-credit-card mr-2"></i>Pagar com Cartão
                 </button>
             </form>
         </div>
@@ -484,6 +531,79 @@ function showPixExpiredMessage() {
     setTimeout(() => {
         errorDiv.remove();
     }, 5000);
+}
+
+// Stripe Configuration
+const stripe = Stripe('{{ env("STRIPE_KEY") }}');
+const elements = stripe.elements();
+const cardElement = elements.create('card', {
+    style: {
+        base: {
+            fontSize: '16px',
+            color: '#000000',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            '::placeholder': {
+                color: '#aab7c4'
+            }
+        },
+        invalid: {
+            color: '#fa755a',
+            iconColor: '#fa755a'
+        }
+    }
+});
+
+// Mount card element when modal opens
+setTimeout(() => {
+    if (document.getElementById('card-element')) {
+        cardElement.mount('#card-element');
+    }
+}, 100);
+
+// Handle card errors
+cardElement.on('change', function(event) {
+    const displayError = document.getElementById('card-errors');
+    if (displayError) {
+        if (event.error) {
+            displayError.textContent = event.error.message;
+        } else {
+            displayError.textContent = '';
+        }
+    }
+});
+
+// Handle form submission
+const form = document.getElementById('depositForm');
+if (form) {
+    const submitBtn = document.getElementById('submitBtn');
+    
+    form.addEventListener('submit', async function(event) {
+        event.preventDefault();
+        
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processando...';
+        
+        const {token, error} = await stripe.createToken(cardElement);
+        
+        if (error) {
+            const errorElement = document.getElementById('card-errors');
+            if (errorElement) {
+                errorElement.textContent = error.message;
+            }
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-credit-card mr-2"></i>Pagar com Cartão';
+        } else {
+            // Add token to form
+            const hiddenInput = document.createElement('input');
+            hiddenInput.setAttribute('type', 'hidden');
+            hiddenInput.setAttribute('name', 'stripeToken');
+            hiddenInput.setAttribute('value', token.id);
+            form.appendChild(hiddenInput);
+            
+            // Submit form
+            form.submit();
+        }
+    });
 }
 </script>
 @endpush

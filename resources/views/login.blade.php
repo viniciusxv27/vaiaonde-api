@@ -11,22 +11,26 @@
         .vai-aonde-gradient {
             background: linear-gradient(135deg, #000000 0%, #FEB800 100%);
         }
+        .vai-aonde-bg {
+            background: #000;
+        }
         .vai-aonde-btn {
-            background: linear-gradient(135deg, #FEB800 0%, #000000 100%);
+            background: #000;
+            color: #FEB800
         }
         .vai-aonde-btn:hover {
-            background: linear-gradient(135deg, #ffcc33 0%, #1a1a1a 100%);
+            background: #1d1d1d;
+            color: #FEB800
         }
     </style>
 </head>
 <body class="vai-aonde-gradient min-h-screen flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
         <!-- Header -->
-        <div class="vai-aonde-gradient p-8 text-white text-center">
+        <div class="vai-aonde-bg p-8 text-white text-center">
             <div class="flex justify-center mb-4">
                 <img src="{{ asset('logo.png') }}" alt="VaiAonde Capixaba" class="h-16">
             </div>
-            <h1 class="text-2xl font-bold mb-1">VaiAonde Capixaba</h1>
             <p class="text-yellow-200">Painel Administrativo</p>
         </div>
         

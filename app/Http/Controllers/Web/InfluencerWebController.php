@@ -240,48 +240,117 @@ class InfluencerWebController extends Controller
     {
         $request->validate([
             'amount' => 'required|numeric|min:10',
+            'payment_method' => 'required|in:card,pix',
         ]);
 
         $user = Auth::user();
 
         try {
-            $abacatePayService = new \App\Services\AbacatePayService();
-            
-            $result = $abacatePayService->createPixQrCode(
-                $request->amount,
-                'Recarga de saldo - Influenciador - User: ' . $user->id,
-                [
-                    'name' => $user->name,
-                    'cellphone' => $user->phone ?? '',
-                    'email' => $user->email,
-                    'taxId' => $user->cpf ?? ''
-                ],
-                [
+            // Depósito via Cartão
+            if ($request->payment_method === 'card') {
+                $request->validate([
+                    'stripeToken' => 'required|string',
+                ]);
+
+                \Stripe\Stripe::setApiKey(env('STRIPE_SECRET'));
+
+                $transaction = \App\Models\Transaction::create([
                     'user_id' => $user->id,
-                    'type' => 'influencer_deposit'
-                ]
-            );
+                    'type' => 'deposit',
+                    'amount' => $request->amount,
+                    'balance_before' => $user->wallet_balance,
+                    'balance_after' => $user->wallet_balance + $request->amount,
+                    'description' => 'Recarga de saldo via cartão - Influenciador',
+                    'payment_method' => 'card',
+                    'status' => 'pending',
+                ]);
 
-            if (!$result['success']) {
-                return back()->with('error', $result['error'] ?? 'Erro ao gerar PIX');
+                try {
+                    $charge = \Stripe\Charge::create([
+                        'amount' => $request->amount * 100, // Stripe usa centavos
+                        'currency' => 'brl',
+                        'source' => $request->stripeToken,
+                        'description' => "Recarga saldo - Influenciador - User {$user->id}",
+                        'metadata' => [
+                            'user_id' => $user->id,
+                            'transaction_id' => $transaction->id,
+                            'type' => 'influencer_deposit'
+                        ]
+                    ]);
+
+                    if ($charge->status === 'succeeded') {
+                        $user->increment('wallet_balance', $request->amount);
+
+                        $transaction->update([
+                            'status' => 'completed',
+                            'stripe_charge_id' => $charge->id,
+                            'balance_after' => $user->wallet_balance,
+                        ]);
+
+                        return back()->with('success', 'Saldo adicionado com sucesso via cartão! Novo saldo: R$ ' . number_format($user->wallet_balance, 2, ',', '.'));
+                    } else {
+                        $transaction->update(['status' => 'failed']);
+                        return back()->with('error', 'Pagamento não autorizado. Tente novamente.');
+                    }
+
+                } catch (\Stripe\Exception\CardException $e) {
+                    $transaction->update([
+                        'status' => 'failed',
+                        'error_message' => $e->getMessage()
+                    ]);
+                    
+                    return back()->with('error', 'Erro no cartão: ' . $e->getError()->message);
+                    
+                } catch (\Exception $e) {
+                    $transaction->update([
+                        'status' => 'failed',
+                        'error_message' => $e->getMessage()
+                    ]);
+                    
+                    return back()->with('error', 'Erro ao processar pagamento: ' . $e->getMessage());
+                }
             }
+            
+            // Depósito via PIX
+            elseif ($request->payment_method === 'pix') {
+                $abacatePayService = new \App\Services\AbacatePayService();
+                
+                $result = $abacatePayService->createPixQrCode(
+                    $request->amount,
+                    'Recarga de saldo - Influenciador - User: ' . $user->id,
+                    [
+                        'name' => $user->name,
+                        'cellphone' => $user->phone ?? '',
+                        'email' => $user->email,
+                        'taxId' => $user->cpf ?? ''
+                    ],
+                    [
+                        'user_id' => $user->id,
+                        'type' => 'influencer_deposit'
+                    ]
+                );
 
-            if (empty($result['id']) || empty($result['qr_code'])) {
-                return back()->with('error', 'Erro ao gerar QR Code PIX. Tente novamente.');
+                if (!$result['success']) {
+                    return back()->with('error', $result['error'] ?? 'Erro ao gerar PIX');
+                }
+
+                if (empty($result['id']) || empty($result['qr_code'])) {
+                    return back()->with('error', 'Erro ao gerar QR Code PIX. Tente novamente.');
+                }
+
+                return back()->with([
+                    'success' => 'QR Code PIX gerado com sucesso! Aguardando pagamento...',
+                    'pix_qr_code' => $result['qr_code'],
+                    'pix_qr_code_url' => $result['qr_code_url'],
+                    'pix_id' => $result['id'],
+                    'pix_amount' => $request->amount,
+                    'pix_expires_at' => $result['expires_at'],
+                    'show_pix_modal' => true
+                ]);
             }
-
-            return back()->with([
-                'success' => 'QR Code PIX gerado com sucesso! Aguardando pagamento...',
-                'pix_qr_code' => $result['qr_code'],
-                'pix_qr_code_url' => $result['qr_code_url'],
-                'pix_id' => $result['id'],
-                'pix_amount' => $request->amount,
-                'pix_expires_at' => $result['expires_at'],
-                'show_pix_modal' => true
-            ]);
 
         } catch (\Exception $e) {
-            return back()->with('error', 'Erro ao gerar PIX: ' . $e->getMessage());
+            return back()->with('error', 'Erro ao processar depósito: ' . $e->getMessage());
         }
     }
 
