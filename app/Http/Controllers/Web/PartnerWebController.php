@@ -95,9 +95,10 @@ class PartnerWebController extends Controller
     public function createPlace()
     {
         $cities = \App\Models\City::orderBy('name')->get();
+        $tipes = \App\Models\Tipe::orderBy('name')->get();
         $categories = \App\Models\Categorie::orderBy('name')->get();
 
-        return view('partner.places-create', compact('cities', 'categories'));
+        return view('partner.places-create', compact('cities', 'tipes', 'categories'));
     }
 
     public function storePlace(Request $request)
@@ -106,51 +107,139 @@ class PartnerWebController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'required|in:lugar,restaurante,evento',
+            'tipe_id' => 'required|exists:tipe,id',
             'city_id' => 'required|exists:city,id',
-            'category_id' => 'nullable|exists:categorie,id',
+            'categories' => 'nullable|array',
+            'categories.*' => 'exists:categorie,id',
+            'phone' => 'nullable|string|max:20',
             'description' => 'nullable|string',
+            'instagram_url' => 'nullable|string',
+            'location_url' => 'nullable|string',
+            'uber_url' => 'nullable|string',
+            'location' => 'nullable|string',
             'address' => 'nullable|string',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
-            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'logo' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'images' => 'required|array',
+            'images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'card_image_index' => 'nullable|integer|min:0',
         ]);
 
         DB::beginTransaction();
         try {
+            // Buscar o tipo para definir o type
+            $tipe = \App\Models\Tipe::find($request->tipe_id);
+            
+            if (!$tipe) {
+                throw new \Exception('Tipo não encontrado com ID: ' . $request->tipe_id);
+            }
+            
+            // Índice da imagem principal (padrão é a primeira - índice 0)
+            $cardImageIndex = $request->card_image_index ?? 0;
+            
+            $cardImagePath = '/uploads/places/placeholder.jpg'; // Valor padrão
+            
+            // Upload da imagem principal como card_image
+            if ($request->hasFile('images') && isset($request->file('images')[$cardImageIndex])) {
+                $cardImage = $request->file('images')[$cardImageIndex];
+                $cardImageName = time() . '_card_' . uniqid() . '.' . $cardImage->getClientOriginalExtension();
+                $cardImage->storeAs('uploads/places', $cardImageName, 'public_uploads');
+                $cardImagePath = '/uploads/places/' . $cardImageName;
+            } elseif ($request->hasFile('images')) {
+                // Fallback: usar primeira imagem se o índice não existir
+                $cardImage = $request->file('images')[0];
+                $cardImageName = time() . '_card_' . uniqid() . '.' . $cardImage->getClientOriginalExtension();
+                $cardImage->storeAs('uploads/places', $cardImageName, 'public_uploads');
+                $cardImagePath = '/uploads/places/' . $cardImageName;
+            }
+            
+            // Upload da logo
+            $logoPath = '';
+            if ($request->hasFile('logo')) {
+                $logo = $request->file('logo');
+                $logoName = time() . '_logo_' . uniqid() . '.' . $logo->getClientOriginalExtension();
+                $logo->storeAs('uploads/places/logos', $logoName, 'public_uploads');
+                $logoPath = '/uploads/places/logos/' . $logoName;
+            }
+            
+            \Log::info('Proprietário criando lugar:', [
+                'user_id' => $user->id,
+                'name' => $request->name,
+                'type' => $tipe->name,
+                'card_image' => $cardImagePath,
+                'logo' => $logoPath,
+            ]);
+            
             $data = [
                 'name' => $request->name,
-                'type' => $request->type,
+                'type' => $tipe->name ?? 'lugar', // usar o nome do tipo
+                'tipe_id' => $request->tipe_id,
                 'city_id' => $request->city_id,
                 'owner_id' => $user->id,
-                'description' => $request->description,
-                'address' => $request->address,
+                'phone' => $request->phone ?? '',
+                'review' => $request->description ?? '', // description vira review
                 'is_active' => true,
+                'categories_ids' => $request->categories ? implode(',', $request->categories) : '',
+                'card_image' => $cardImagePath,
+                'logo' => $logoPath,
+                'instagram_url' => $request->instagram_url ?? '',
+                'location_url' => $request->location_url ?? '',
+                'uber_url' => $request->uber_url ?? '',
+                'location' => $request->location ?? '',
+                'hidden' => false,
+                'top' => false,
             ];
 
-            // Create coords if latitude and longitude provided
+            // Create place first
+            $place = Place::create($data);
+            
+            \Log::info('Lugar criado pelo proprietário com ID: ' . $place->id);
+
+            // Create coords after place if latitude and longitude provided
             if ($request->filled('latitude') && $request->filled('longitude')) {
                 $coords = \App\Models\Coords::create([
                     'latitude' => $request->latitude,
                     'longitude' => $request->longitude,
+                    'place_id' => $place->id,
                 ]);
-                $data['coords_id'] = $coords->id;
+                $place->coords_id = $coords->id;
+                $place->save();
+                
+                \Log::info('Coordenadas salvas para o lugar ID: ' . $place->id);
             }
-
-            $place = Place::create($data);
 
             // Handle multiple images upload
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $index => $image) {
-                    $filename = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
-                    $path = $image->storeAs('places', $filename, 'public');
-                    
-                    \App\Models\PlaceImage::create([
-                        'place_id' => $place->id,
-                        'image_path' => $path,
-                        'is_primary' => $index === 0, // Primeira imagem é a principal
-                        'order' => $index,
-                    ]);
+                    try {
+                        // Sanitizar nome do arquivo
+                        $extension = $image->getClientOriginalExtension();
+                        $filename = time() . '_' . $index . '_' . uniqid() . '.' . $extension;
+                        
+                        // Usar Storage do Laravel para mover o arquivo
+                        $path = $image->storeAs('uploads/places', $filename, 'public_uploads');
+                        
+                        if (!$path) {
+                            throw new \Exception("Falha ao salvar arquivo");
+                        }
+                        
+                        \App\Models\PlaceImage::create([
+                            'place_id' => $place->id,
+                            'image_path' => '/uploads/places/' . $filename,
+                            'is_primary' => $index === $cardImageIndex,
+                            'order' => $index,
+                        ]);
+                        
+                        \Log::info("Imagem {$index} salva para lugar {$place->id}: /uploads/places/{$filename}");
+                        
+                    } catch (\Exception $e) {
+                        \Log::error("Erro ao processar imagem {$index}", [
+                            'error' => $e->getMessage(),
+                            'trace' => $e->getTraceAsString(),
+                        ]);
+                        throw new \Exception("Erro ao fazer upload da imagem " . ($index + 1) . ": " . $e->getMessage());
+                    }
                 }
             }
 
@@ -158,12 +247,21 @@ class PartnerWebController extends Controller
             if ($user->partnerSubscription && $user->partnerSubscription->isActive()) {
                 $place->subscription_id = $user->partnerSubscription->id;
                 $place->save();
+                
+                \Log::info('Assinatura vinculada ao lugar ID: ' . $place->id);
             }
 
             DB::commit();
+            
+            \Log::info('Estabelecimento criado com sucesso pelo proprietário! ID: ' . $place->id);
+            
             return redirect()->route('partner.places')->with('success', 'Estabelecimento cadastrado com sucesso!');
         } catch (\Exception $e) {
             DB::rollBack();
+            
+            \Log::error('Erro ao cadastrar estabelecimento (Proprietário): ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            
             return back()->with('error', 'Erro ao cadastrar estabelecimento: ' . $e->getMessage())->withInput();
         }
     }
@@ -173,9 +271,10 @@ class PartnerWebController extends Controller
         $user = Auth::user();
         $place = Place::where('id', $id)->where('owner_id', $user->id)->firstOrFail();
         $cities = \App\Models\City::orderBy('name')->get();
+        $tipes = \App\Models\Tipe::orderBy('name')->get();
         $categories = \App\Models\Categorie::orderBy('name')->get();
 
-        return view('partner.places-edit', compact('place', 'cities', 'categories'));
+        return view('partner.places-edit', compact('place', 'cities', 'tipes', 'categories'));
     }
 
     public function updatePlace(Request $request, $id)
@@ -185,9 +284,10 @@ class PartnerWebController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'required|in:lugar,restaurante,evento',
+            'tipe_id' => 'required|exists:tipe,id',
             'city_id' => 'required|exists:city,id',
-            'category_id' => 'nullable|exists:categorie,id',
+            'categories' => 'nullable|array',
+            'categories.*' => 'exists:categorie,id',
             'description' => 'nullable|string',
             'address' => 'nullable|string',
             'latitude' => 'nullable|numeric',
@@ -199,9 +299,14 @@ class PartnerWebController extends Controller
 
         DB::beginTransaction();
         try {
+            // Get tipe name
+            $tipe = \App\Models\Tipe::findOrFail($request->tipe_id);
+            
             $data = [
                 'name' => $request->name,
-                'type' => $request->type,
+                'type' => $tipe->name,
+                'tipe_id' => $request->tipe_id,
+                'categories_ids' => $request->filled('categories') ? implode(',', $request->categories) : null,
                 'city_id' => $request->city_id,
                 'description' => $request->description,
                 'address' => $request->address,
@@ -250,8 +355,9 @@ class PartnerWebController extends Controller
                     $coords = \App\Models\Coords::create([
                         'latitude' => $request->latitude,
                         'longitude' => $request->longitude,
+                        'place_id' => $place->id,
                     ]);
-                    $data['coords_id'] = $coords->id;
+                    $place->coords_id = $coords->id;
                 }
             }
 

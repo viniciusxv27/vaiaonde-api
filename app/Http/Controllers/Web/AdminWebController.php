@@ -150,7 +150,9 @@ class AdminWebController extends Controller
 
     public function createPlace()
     {
-        return view('admin.places.create');
+        $tipes = \App\Models\Tipe::orderBy('name')->get();
+        $categories = \App\Models\Categorie::with('tipe')->orderBy('name')->get();
+        return view('admin.places.create', compact('tipes', 'categories'));
     }
 
     public function storePlace(Request $request)
@@ -159,22 +161,87 @@ class AdminWebController extends Controller
             'name' => 'required|string|max:255',
             'type' => 'required|in:lugar,restaurante,evento',
             'city_id' => 'required|exists:city,id',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'images' => 'required|array|min:1',
+            'images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'card_image_index' => 'nullable|integer|min:0',
             'owner_id' => 'nullable|exists:users,id',
             'plan_id' => 'nullable|exists:partner_subscription_plans,id',
+            'phone' => 'nullable|string',
+            'review' => 'required|string',
+            'logo' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'instagram_url' => 'nullable|string',
+            'location_url' => 'nullable|string',
+            'uber_url' => 'nullable|string',
+            'location' => 'nullable|string',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
+            'categories' => 'nullable|array',
+            'categories.*' => 'exists:categorie,id',
         ]);
 
         DB::beginTransaction();
         try {
-            $data = $request->except(['image', 'plan_id']);
-
-            // Upload de imagem
-            if ($request->hasFile('image')) {
-                $image = $request->file('image');
-                $imageName = time() . '_' . $image->getClientOriginalName();
-                $image->move(public_path('uploads/places'), $imageName);
-                $data['image'] = '/uploads/places/' . $imageName;
+            // Get tipe_id from type name
+            $tipe = \App\Models\Tipe::where('name', $request->type)->first();
+            
+            if (!$tipe) {
+                throw new \Exception('Tipo não encontrado: ' . $request->type);
             }
+            
+            // Índice da imagem principal (padrão é a primeira - índice 0)
+            $cardImageIndex = $request->card_image_index ?? 0;
+            
+            $cardImagePath = '/uploads/places/placeholder.jpg'; // Valor padrão
+            
+            // Upload da imagem principal como card_image
+            if ($request->hasFile('images') && isset($request->file('images')[$cardImageIndex])) {
+                $cardImage = $request->file('images')[$cardImageIndex];
+                $cardImageName = time() . '_card_' . uniqid() . '.' . $cardImage->getClientOriginalExtension();
+                $cardImage->storeAs('uploads/places', $cardImageName, 'public_uploads');
+                $cardImagePath = '/uploads/places/' . $cardImageName;
+            } elseif ($request->hasFile('images')) {
+                // Fallback: usar primeira imagem se o índice não existir
+                $cardImage = $request->file('images')[0];
+                $cardImageName = time() . '_card_' . uniqid() . '.' . $cardImage->getClientOriginalExtension();
+                $cardImage->storeAs('uploads/places', $cardImageName, 'public_uploads');
+                $cardImagePath = '/uploads/places/' . $cardImageName;
+            }
+            
+            // Upload da logo
+            $logoPath = '';
+            if ($request->hasFile('logo')) {
+                $logo = $request->file('logo');
+                $logoName = time() . '_logo_' . uniqid() . '.' . $logo->getClientOriginalExtension();
+                $logo->storeAs('uploads/places/logos', $logoName, 'public_uploads');
+                $logoPath = '/uploads/places/logos/' . $logoName;
+            }
+            
+            \Log::info('Dados do lugar a serem salvos:', [
+                'name' => $request->name,
+                'type' => $request->type,
+                'tipe_id' => $tipe->id,
+                'card_image' => $cardImagePath,
+                'logo' => $logoPath,
+            ]);
+            
+            $data = [
+                'name' => $request->name,
+                'type' => $request->type,
+                'tipe_id' => $tipe ? $tipe->id : null,
+                'city_id' => $request->city_id,
+                'owner_id' => $request->owner_id,
+                'phone' => $request->phone ?? '',
+                'review' => $request->review,
+                'categories_ids' => $request->filled('categories') ? implode(',', $request->categories) : '',
+                'card_image' => $cardImagePath,
+                'logo' => $logoPath,
+                'instagram_url' => $request->instagram_url ?? '',
+                'location_url' => $request->location_url ?? '',
+                'uber_url' => $request->uber_url ?? '',
+                'location' => $request->location ?? '',
+                'hidden' => false,
+                'top' => false,
+            ];
 
             // Se tem proprietário e plano, criar assinatura
             if ($request->owner_id && $request->plan_id) {
@@ -196,13 +263,67 @@ class AdminWebController extends Controller
                 $data['is_active'] = true;
             }
 
-            Place::create($data);
+            // Create place first
+            $place = Place::create($data);
+            
+            \Log::info('Lugar criado com ID: ' . $place->id);
+
+            // Upload de todas as imagens para place_images
+            if ($request->hasFile('images')) {
+                foreach ($request->file('images') as $index => $image) {
+                    try {
+                        // Sanitizar nome do arquivo
+                        $extension = $image->getClientOriginalExtension();
+                        $filename = time() . '_' . $index . '_' . uniqid() . '.' . $extension;
+                        
+                        // Usar Storage do Laravel para mover o arquivo
+                        $path = $image->storeAs('uploads/places', $filename, 'public_uploads');
+                        
+                        if (!$path) {
+                            throw new \Exception("Falha ao salvar arquivo");
+                        }
+                        
+                        \App\Models\PlaceImage::create([
+                            'place_id' => $place->id,
+                            'image_path' => '/uploads/places/' . $filename,
+                            'is_primary' => $index === $cardImageIndex,
+                            'order' => $index,
+                        ]);
+                        
+                        \Log::info("Imagem {$index} salva: /uploads/places/{$filename}");
+                        
+                    } catch (\Exception $e) {
+                        \Log::error("Erro ao processar imagem {$index}", [
+                            'error' => $e->getMessage(),
+                            'trace' => $e->getTraceAsString(),
+                        ]);
+                        throw new \Exception("Erro ao fazer upload da imagem " . ($index + 1) . ": " . $e->getMessage());
+                    }
+                }
+            }
+
+            // Create coords after place if latitude and longitude provided
+            if ($request->filled('latitude') && $request->filled('longitude')) {
+                $coords = \App\Models\Coords::create([
+                    'latitude' => $request->latitude,
+                    'longitude' => $request->longitude,
+                    'place_id' => $place->id,
+                ]);
+                $place->coords_id = $coords->id;
+                $place->save();
+            }
 
             DB::commit();
+            
+            \Log::info('Lugar criado com sucesso! ID: ' . $place->id);
 
             return redirect()->route('admin.places')->with('success', 'Lugar criado com sucesso!');
         } catch (\Exception $e) {
             DB::rollBack();
+            
+            \Log::error('Erro ao criar lugar: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            
             return back()->with('error', 'Erro ao criar lugar: ' . $e->getMessage())->withInput();
         }
     }
@@ -488,7 +609,7 @@ class AdminWebController extends Controller
     // Categories Management
     public function categories()
     {
-        $categories = \App\Models\Categorie::with('tipe')->withCount('places')->orderBy('name')->paginate(20);
+        $categories = \App\Models\Categorie::with('tipe')->orderBy('name')->paginate(20);
         return view('admin.categories.index', compact('categories'));
     }
 

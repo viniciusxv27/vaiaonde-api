@@ -6,7 +6,7 @@
 <div class="max-w-7xl mx-auto">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold text-gray-800">Categorias</h1>
-        <a href="{{ route('admin.categories.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition">
+        <a href="{{ route('admin.categories.create') }}" class="bg-[#FEB800] hover:bg-[#e5a700] text-black px-6 py-2 rounded-lg font-semibold transition">
             <i class="fas fa-plus mr-2"></i>Nova Categoria
         </a>
     </div>
@@ -24,7 +24,6 @@
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lugares</th>
                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
                 </tr>
             </thead>
@@ -35,9 +34,6 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $category->name }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">{{ $category->tipe->name ?? '-' }}</span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {{ $category->places_count ?? 0 }} estabelecimentos
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <a href="{{ route('admin.categories.edit', $category->id) }}" class="text-blue-600 hover:text-blue-900 mr-3">

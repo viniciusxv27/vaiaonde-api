@@ -35,11 +35,7 @@ class Place extends Model
         'tipe_id',
         'top',
         'image',
-        'description',
-        'address',
-        'latitude',
-        'longitude',
-        'category_id',
+        'coords_id',
     ];
 
     protected $casts = [
@@ -101,6 +97,19 @@ class Place extends Model
     public function hasActiveSubscription()
     {
         return $this->subscription && $this->subscription->isActive();
+    }
+
+    // Accessor para calcular rating dinamicamente
+    public function getRatingAttribute()
+    {
+        $ratings = Rating::where('place_id', $this->id)->pluck('rate')->toArray();
+        return count($ratings) > 0 ? round(array_sum($ratings) / count($ratings), 1) : 0;
+    }
+
+    // Relação com avaliações
+    public function ratings()
+    {
+        return $this->hasMany(Rating::class, 'place_id');
     }
 
 }

@@ -11,7 +11,6 @@ class Categorie extends Model
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-
     protected $table = 'categorie';
 
     protected $fillable = [
@@ -22,10 +21,5 @@ class Categorie extends Model
     public function tipe()
     {
         return $this->belongsTo(Tipe::class);
-    }
-
-    public function places()
-    {
-        return $this->hasMany(Place::class, 'categorie_id');
     }
 }

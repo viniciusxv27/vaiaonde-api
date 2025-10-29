@@ -35,15 +35,17 @@
 
                 <!-- Tipo -->
                 <div>
-                    <label for="type" class="block text-sm font-medium text-gray-700 mb-1">Tipo *</label>
-                    <select name="type" id="type" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('type') border-red-500 @enderror" required>
+                    <label for="tipe_id" class="block text-sm font-medium text-gray-700 mb-1">Tipo *</label>
+                    <select name="tipe_id" id="tipe_id" onchange="loadCategories()" 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('tipe_id') border-red-500 @enderror" required>
                         <option value="">Selecione o tipo</option>
-                        <option value="lugar" {{ old('type', $place->type) == 'lugar' ? 'selected' : '' }}>Lugar</option>
-                        <option value="restaurante" {{ old('type', $place->type) == 'restaurante' ? 'selected' : '' }}>Restaurante</option>
-                        <option value="evento" {{ old('type', $place->type) == 'evento' ? 'selected' : '' }}>Evento</option>
+                        @foreach($tipes as $tipe)
+                            <option value="{{ $tipe->id }}" {{ old('tipe_id', $place->tipe_id) == $tipe->id ? 'selected' : '' }}>
+                                {{ $tipe->name }}
+                            </option>
+                        @endforeach
                     </select>
-                    @error('type')
+                    @error('tipe_id')
                         <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                     @enderror
                 </div>
@@ -65,18 +67,15 @@
                     @enderror
                 </div>
 
-                <!-- Categoria -->
-                <div>
-                    <label for="category_id" class="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
-                    <select name="category_id" id="category_id" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <option value="">Selecione a categoria</option>
-                        @foreach($categories as $category)
-                            <option value="{{ $category->id }}" {{ old('category_id', $place->category_id) == $category->id ? 'selected' : '' }}>
-                                {{ $category->name }}
-                            </option>
-                        @endforeach
-                    </select>
+                <!-- Categorias (Múltiplas) -->
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Categorias</label>
+                    <div id="categoriesContainer" class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        <p class="text-gray-500 text-sm col-span-full">Selecione um tipo primeiro para ver as categorias disponíveis</p>
+                    </div>
+                    @error('categories')
+                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <!-- Imagem -->
@@ -238,5 +237,69 @@
                 }
             });
     }
+
+    // Categories data
+    const allCategories = @json($categories);
+    const placeCategories = '{{ $place->categories_ids }}'.split(',').filter(id => id);
+    
+    console.log('Todas as categorias:', allCategories);
+    console.log('Categorias do lugar:', placeCategories);
+
+    // Load categories based on selected type
+    function loadCategories() {
+        const tipeId = document.getElementById('tipe_id').value;
+        const container = document.getElementById('categoriesContainer');
+        
+        console.log('Tipo selecionado:', tipeId);
+        
+        if (!tipeId) {
+            container.innerHTML = '<p class="text-gray-500 text-sm col-span-full">Selecione um tipo primeiro para ver as categorias disponíveis</p>';
+            return;
+        }
+        
+        const filteredCategories = allCategories.filter(cat => cat.tipe_id == tipeId);
+        
+        console.log('Categorias filtradas:', filteredCategories);
+        
+        if (filteredCategories.length === 0) {
+            container.innerHTML = '<p class="text-gray-500 text-sm col-span-full">Nenhuma categoria disponível para este tipo</p>';
+            return;
+        }
+        
+        let html = '';
+        filteredCategories.forEach(category => {
+            const isChecked = placeCategories.includes(category.id.toString());
+            html += `
+                <label class="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-[#FEB800] hover:bg-opacity-10 hover:border-[#FEB800] transition ${isChecked ? 'bg-[#FEB800] bg-opacity-10 border-[#FEB800]' : ''}">
+                    <input type="checkbox" name="categories[]" value="${category.id}" 
+                        ${isChecked ? 'checked' : ''}
+                        class="w-4 h-4 text-[#FEB800] border-gray-300 rounded focus:ring-[#FEB800]">
+                    <span class="text-sm font-medium text-gray-700">${category.name}</span>
+                </label>
+            `;
+        });
+        
+        container.innerHTML = html;
+    }
+
+    // Load categories on page load if type is already selected
+    document.addEventListener('DOMContentLoaded', function() {
+        const tipeId = document.getElementById('tipe_id').value;
+        if (tipeId) {
+            loadCategories();
+        }
+    });
+    
+    // Add visual feedback when categories are checked/unchecked
+    document.addEventListener('change', function(e) {
+        if (e.target.name === 'categories[]') {
+            const label = e.target.closest('label');
+            if (e.target.checked) {
+                label.classList.add('bg-[#FEB800]', 'bg-opacity-10', 'border-[#FEB800]');
+            } else {
+                label.classList.remove('bg-[#FEB800]', 'bg-opacity-10', 'border-[#FEB800]');
+            }
+        }
+    });
 </script>
 @endsection

@@ -148,7 +148,7 @@ class InfluencerController extends Controller
             // Busca influenciadores que já fizeram vídeos de lugares desta categoria
             $influencers = User::where('role', 'influenciador')
                 ->whereHas('videos.place', function ($q) use ($categoryId) {
-                    $q->where('categorie_id', $categoryId);
+                    $q->whereRaw('FIND_IN_SET(?, categories_ids)', [$categoryId]);
                 })
                 ->withCount(['videos'])
                 ->get();
@@ -157,7 +157,7 @@ class InfluencerController extends Controller
             $influencers->transform(function ($influencer) use ($categoryId) {
                 $stats = Video::where('user_id', $influencer->id)
                     ->whereHas('place', function ($q) use ($categoryId) {
-                        $q->where('categorie_id', $categoryId);
+                        $q->whereRaw('FIND_IN_SET(?, categories_ids)', [$categoryId]);
                     })
                     ->selectRaw('
                         COUNT(*) as videos_in_category,

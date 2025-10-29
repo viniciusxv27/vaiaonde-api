@@ -18,7 +18,7 @@
         <aside :class="sidebarOpen ? 'w-64' : 'w-20'" class="bg-[#FEB800] text-black transition-all duration-300 shadow-xl">
             <div class="p-4 flex items-center justify-between border-b-2 border-black border-opacity-10">
                 <div x-show="sidebarOpen" class="flex items-center">
-                    <img src="{{ asset('logo.png') }}" alt="VaiAonde" class="h-8">
+                    <img src="{{ asset('logo.png') }}" alt="VaiAonde" class="h-8 brightness-0">
                 </div>
                 <button @click="sidebarOpen = !sidebarOpen" class="text-black hover:text-white transition bg-black bg-opacity-10 hover:bg-opacity-20 p-2 rounded">
                     <i class="fas fa-bars"></i>

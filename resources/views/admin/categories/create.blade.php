@@ -44,7 +44,7 @@
                 <a href="{{ route('admin.categories') }}" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-lg font-semibold transition">
                     Cancelar
                 </a>
-                <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold transition">
+                <button type="submit" class="bg-[#FEB800] hover:bg-[#e5a700] text-black px-6 py-2 rounded-lg font-semibold transition">
                     <i class="fas fa-save mr-2"></i>Salvar
                 </button>
             </div>
