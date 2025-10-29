@@ -12,7 +12,7 @@ class AuthWebController extends Controller
 {
     public function showLoginForm()
     {
-        return view('login');
+        return safe_view('login');
     }
 
     public function login(Request $request)

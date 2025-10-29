@@ -1,0 +1,32 @@
+===============================================
+   SOLUÇÃO RÁPIDA - View [login] not found
+===============================================
+
+⚠️ ERRO EM PRODUÇÃO? Execute no servidor:
+
+php artisan cache:clear-all
+php artisan optimize:production
+
+Ou manualmente:
+
+php artisan view:clear
+php artisan view:cache
+php artisan config:clear
+php artisan config:cache
+php artisan route:clear
+php artisan route:cache
+
+===============================================
+   DEPLOY COMPLETO
+===============================================
+
+1. git pull origin main
+2. composer install --no-dev --optimize-autoloader
+3. php artisan migrate --force
+4. php artisan optimize:production
+5. chmod -R 775 storage bootstrap/cache
+6. sudo systemctl restart php-fpm (se necessário)
+
+===============================================
+
+Para mais detalhes, veja DEPLOY.md
