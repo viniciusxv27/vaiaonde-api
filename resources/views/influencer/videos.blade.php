@@ -201,20 +201,6 @@
         </div>
         
         <div class="p-6">
-            <!-- Aviso sobre limite temporário -->
-            <div class="mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div class="flex items-start">
-                    <i class="fas fa-exclamation-triangle text-yellow-600 mt-0.5 mr-3"></i>
-                    <div class="text-sm">
-                        <p class="font-semibold text-yellow-800 mb-1">⚠️ Limite Temporário: Vídeos até 20MB</p>
-                        <p class="text-yellow-700">
-                            Você está usando o servidor de desenvolvimento do Laravel. Para fazer upload de vídeos maiores (até 500MB), 
-                            configure Apache, Nginx ou Laravel Valet. Veja instruções em <code class="bg-yellow-100 px-1 rounded">UPLOAD_SOLUTION.md</code>
-                        </p>
-                    </div>
-                </div>
-            </div>
-            
             <form id="uploadVideoForm" method="POST" action="{{ route('influencer.videos.store') }}" enctype="multipart/form-data">
                 @csrf
                 
@@ -563,10 +549,6 @@ if (uploadForm) {
         
         // Validação de tamanho (20MB máximo para servidor de desenvolvimento)
         const maxSize = 20 * 1024 * 1024; // 20MB
-        if (videoFile.size > maxSize) {
-            alert('O vídeo não pode ser maior que 20MB.\n\n⚠️ LIMITE TEMPORÁRIO: Este limite existe porque você está usando o servidor de desenvolvimento do Laravel (php artisan serve).\n\nPara fazer upload de vídeos maiores (até 500MB), você precisa:\n• Instalar Laravel Valet (recomendado para Mac)\n• Configurar Apache ou Nginx\n• Ver detalhes em UPLOAD_SOLUTION.md');
-            return false;
-        }
         
         console.log('Preparando upload do vídeo:', {
             name: videoFile.name,
