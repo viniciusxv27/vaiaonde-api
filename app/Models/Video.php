@@ -47,6 +47,19 @@ class Video extends Model
         return $this->belongsTo(Place::class, 'place_id');
     }
 
+    public function boosts()
+    {
+        return $this->hasMany(Boost::class, 'video_id');
+    }
+
+    public function activeBoost()
+    {
+        return $this->hasOne(Boost::class, 'video_id')
+            ->whereIn('status', ['active', 'paused'])
+            ->where('end_date', '>=', now())
+            ->latest();
+    }
+
     public function interactions()
     {
         return $this->hasMany(VideoInteraction::class, 'video_id');

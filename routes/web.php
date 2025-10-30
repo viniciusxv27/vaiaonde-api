@@ -17,6 +17,11 @@ Route::get('/login', [AuthWebController::class, 'showLoginForm'])->name('login.f
 Route::post('/login', [AuthWebController::class, 'login'])->name('login.submit');
 Route::post('/logout', [AuthWebController::class, 'logout'])->name('logout');
 
+// CSRF Token refresh
+Route::get('/csrf-token', function () {
+    return response()->json(['token' => csrf_token()]);
+})->middleware('web');
+
 // Influencer Routes
 Route::prefix('influencer')->name('influencer.')->middleware(['auth', 'check.influencer'])->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\Web\InfluencerWebController::class, 'dashboard'])->name('dashboard');
@@ -43,10 +48,14 @@ Route::prefix('influencer')->name('influencer.')->middleware(['auth', 'check.inf
     Route::post('/chats/{id}/send', [App\Http\Controllers\Web\InfluencerWebController::class, 'sendMessage'])->name('chats.send');
     
     // Videos
-    Route::get('/videos', [App\Http\Controllers\Web\InfluencerWebController::class, 'videos'])->name('videos');
+    Route::get('/videos', [App\Http\Controllers\Web\InfluencerWebController::class, 'videos'])->name('videos.index');
     Route::post('/videos', [App\Http\Controllers\Web\InfluencerWebController::class, 'storeVideo'])->name('videos.store');
+    Route::get('/videos/{id}/edit', [App\Http\Controllers\Web\InfluencerWebController::class, 'editVideo'])->name('videos.edit');
+    Route::put('/videos/{id}', [App\Http\Controllers\Web\InfluencerWebController::class, 'updateVideo'])->name('videos.update');
     Route::delete('/videos/{id}', [App\Http\Controllers\Web\InfluencerWebController::class, 'deleteVideo'])->name('videos.delete');
     Route::post('/videos/boost', [App\Http\Controllers\Web\InfluencerWebController::class, 'boostVideo'])->name('videos.boost');
+    Route::post('/videos/boost/{id}/toggle', [App\Http\Controllers\Web\InfluencerWebController::class, 'toggleBoost'])->name('videos.boost.toggle');
+    Route::post('/videos/boost/{id}/finalize', [App\Http\Controllers\Web\InfluencerWebController::class, 'finalizeBoost'])->name('videos.boost.finalize');
 });
 
 // Partner (Proprietário) Routes

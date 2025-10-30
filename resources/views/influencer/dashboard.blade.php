@@ -157,7 +157,7 @@
                 <i class="fas fa-bolt text-yellow-500 mr-2"></i>Ações Rápidas
             </h3>
             <div class="space-y-3">
-                <a href="{{ route('influencer.videos') }}" class="block bg-gradient-to-r from-purple-500 to-purple-600 text-white p-4 rounded-lg hover:from-purple-600 hover:to-purple-700 transition">
+                <a href="{{ route('influencer.videos.index') }}" class="block bg-gradient-to-r from-purple-500 to-purple-600 text-white p-4 rounded-lg hover:from-purple-600 hover:to-purple-700 transition">
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="font-semibold">Enviar Vídeo</p>
@@ -197,14 +197,14 @@
         <h3 class="text-lg font-semibold">
             <i class="fas fa-video text-blue-600 mr-2"></i>Vídeos Recentes
         </h3>
-        <a href="{{ route('influencer.videos') }}" class="text-sm text-purple-600 hover:text-purple-700">
+        <a href="{{ route('influencer.videos.index') }}" class="text-sm text-purple-600 hover:text-purple-700">
             Ver todos <i class="fas fa-arrow-right ml-1"></i>
         </a>
     </div>
     
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 p-6">
         @forelse($recentVideos ?? [] as $video)
-        <div class="group">
+        <div class="group cursor-pointer" onclick="openVideoPlayer('{{ $video->video_url }}', '{{ addslashes($video->title) }}')">
             <div class="relative overflow-hidden rounded-lg mb-3 aspect-video bg-gray-200">
                 @if($video->thumbnail_url)
                 <img src="{{ $video->thumbnail_url }}" alt="{{ $video->title }}" class="w-full h-full object-cover group-hover:scale-105 transition">
@@ -219,7 +219,7 @@
             </div>
             <h4 class="font-semibold text-sm mb-1 truncate">{{ $video->title }}</h4>
             <div class="flex items-center justify-between text-xs text-gray-500">
-                <span><i class="fas fa-eye mr-1"></i>{{ number_format($video->views ?? 0) }}</span>
+                <span><i class="fas fa-eye mr-1"></i>{{ number_format($video->views_count ?? 0) }}</span>
                 <span>{{ $video->created_at->diffForHumans() }}</span>
             </div>
         </div>
@@ -227,11 +227,66 @@
         <div class="col-span-4 p-12 text-center text-gray-500">
             <i class="fas fa-video-slash text-4xl mb-3"></i>
             <p>Nenhum vídeo publicado ainda</p>
-            <a href="{{ route('influencer.videos') }}" class="inline-block mt-4 bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition">
+            <a href="{{ route('influencer.videos.index') }}" class="inline-block mt-4 bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition">
                 <i class="fas fa-upload mr-2"></i>Enviar Primeiro Vídeo
             </a>
         </div>
         @endforelse
     </div>
 </div>
+
+<!-- Video Player Modal -->
+<div id="videoPlayerModal" class="fixed inset-0 bg-black bg-opacity-90 hidden items-center justify-center z-50" onclick="closeVideoPlayer()">
+    <div class="relative w-full max-w-4xl mx-4" onclick="event.stopPropagation()">
+        <button onclick="closeVideoPlayer()" class="absolute -top-10 right-0 text-white hover:text-gray-300 text-xl bg-black bg-opacity-50 rounded-full w-8 h-8 flex items-center justify-center">
+            <i class="fas fa-times"></i>
+        </button>
+        
+        <div class="bg-black rounded-lg overflow-hidden shadow-2xl">
+            <div class="relative" style="padding-bottom: 56.25%; /* 16:9 aspect ratio */">
+                <video id="videoPlayer" controls class="absolute inset-0 w-full h-full" controlsList="nodownload">
+                    <source id="videoSource" src="" type="video/mp4">
+                    Seu navegador não suporta a reprodução de vídeos.
+                </video>
+            </div>
+            <div class="p-3 bg-gray-900 text-white">
+                <h3 id="videoPlayerTitle" class="text-base font-semibold truncate"></h3>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
+
+@push('scripts')
+<script>
+// Video Player Functions
+function openVideoPlayer(videoUrl, videoTitle) {
+    const modal = document.getElementById('videoPlayerModal');
+    const player = document.getElementById('videoPlayer');
+    const source = document.getElementById('videoSource');
+    const title = document.getElementById('videoPlayerTitle');
+    
+    source.src = videoUrl;
+    title.textContent = videoTitle;
+    player.load();
+    
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    
+    // Auto play
+    player.play();
+}
+
+function closeVideoPlayer() {
+    const modal = document.getElementById('videoPlayerModal');
+    const player = document.getElementById('videoPlayer');
+    
+    player.pause();
+    player.currentTime = 0;
+    
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+</script>
+@endpush

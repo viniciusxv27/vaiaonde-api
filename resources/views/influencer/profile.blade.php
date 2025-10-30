@@ -12,17 +12,19 @@
             <h3 class="text-lg font-semibold mb-4">Foto de Perfil</h3>
             
             <div class="text-center">
-                <div class="w-32 h-32 mx-auto bg-purple-600 rounded-full flex items-center justify-center text-white text-4xl mb-4">
-                    @if(auth()->user()->profile_photo_url)
-                    <img src="{{ auth()->user()->profile_photo_url }}" alt="Profile" class="w-full h-full object-cover rounded-full">
+                <div class="w-32 h-32 mx-auto bg-purple-600 rounded-full flex items-center justify-center text-white text-4xl mb-4 overflow-hidden">
+                    @if(auth()->user()->avatar)
+                    <img src="{{ auth()->user()->avatar }}" alt="Profile" class="w-full h-full object-cover">
                     @else
                     <i class="fas fa-user"></i>
                     @endif
                 </div>
                 
-                <button class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition">
-                    <i class="fas fa-camera mr-2"></i>Alterar Foto
-                </button>
+                <div class="flex justify-center">
+                    <label for="avatar_input" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition cursor-pointer">
+                        <i class="fas fa-camera mr-2"></i>Alterar Foto
+                    </label>
+                </div>
                 
                 <p class="text-xs text-gray-500 mt-3">JPG, PNG ou GIF. Máx. 2MB</p>
             </div>
@@ -68,9 +70,12 @@
         <div class="bg-white rounded-lg shadow-sm p-6">
             <h3 class="text-lg font-semibold mb-6">Informações Pessoais</h3>
             
-            <form method="POST" action="{{ route('influencer.profile.update') }}">
+            <form method="POST" action="{{ route('influencer.profile.update') }}" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
+                
+                <!-- Hidden file input for avatar -->
+                <input type="file" id="avatar_input" name="avatar" accept="image/*" class="hidden" onchange="previewAvatar(this)">
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Name -->
@@ -82,12 +87,14 @@
                     
                     <!-- Username -->
                     <div>
-                        <label class="block text-sm font-medium mb-2">Nome de Usuário *</label>
+                        <label class="block text-sm font-medium mb-2">Nome de Usuário (@)</label>
                         <div class="relative">
                             <span class="absolute left-3 top-2.5 text-gray-500">@</span>
                             <input type="text" name="username" value="{{ old('username', auth()->user()->username) }}" 
-                                class="w-full border rounded-lg pl-8 pr-4 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent" required>
+                                class="w-full border rounded-lg pl-8 pr-4 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent" 
+                                placeholder="seu_usuario">
                         </div>
+                        <p class="text-xs text-gray-500 mt-1">Apenas letras, números e underscore (_)</p>
                     </div>
                     
                     <!-- Email -->
@@ -229,6 +236,18 @@
 
 @push('scripts')
 <script>
+// Avatar preview
+function previewAvatar(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const avatarContainer = document.querySelector('.w-32.h-32');
+            avatarContainer.innerHTML = `<img src="${e.target.result}" alt="Profile" class="w-full h-full object-cover">`;
+        }
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
 // Phone mask
 document.getElementById('phone').addEventListener('input', function(e) {
     let value = e.target.value.replace(/\D/g, '');

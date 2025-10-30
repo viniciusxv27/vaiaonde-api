@@ -5,6 +5,13 @@
 
     RewriteEngine On
 
+    # Aumentar limites de upload para vídeos
+    php_value upload_max_filesize 600M
+    php_value post_max_size 600M
+    php_value max_execution_time 600
+    php_value max_input_time 600
+    php_value memory_limit 512M
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

@@ -524,12 +524,24 @@ class AdminWebController extends Controller
 
     public function settings()
     {
-        return view('admin.settings');
+        $settings = \App\Models\Setting::getAllSettings();
+        return view('admin.settings', compact('settings'));
     }
 
     public function updateSettings(Request $request)
     {
-        // Aqui você pode salvar as configurações em um arquivo .env ou banco de dados
+        $request->validate([
+            'app_name' => 'required|string|max:255',
+            'contact_email' => 'required|email|max:255',
+            'featured_price' => 'required|numeric|min:0',
+            'min_withdrawal' => 'required|numeric|min:0',
+        ]);
+
+        \App\Models\Setting::set('app_name', $request->app_name);
+        \App\Models\Setting::set('contact_email', $request->contact_email);
+        \App\Models\Setting::set('featured_price', $request->featured_price);
+        \App\Models\Setting::set('min_withdrawal', $request->min_withdrawal);
+
         return back()->with('success', 'Configurações atualizadas com sucesso!');
     }
 

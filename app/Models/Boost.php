@@ -29,8 +29,8 @@ class Boost extends Model
         'daily_budget' => 'decimal:2',
         'cpc' => 'decimal:2',
         'ctr' => 'decimal:2',
-        'start_date' => 'date',
-        'end_date' => 'date',
+        'start_date' => 'datetime',
+        'end_date' => 'datetime',
     ];
 
     public function video()
@@ -99,5 +99,15 @@ class Boost extends Model
         $daysRemaining = now()->diffInDays($this->end_date, false);
         if ($daysRemaining < 0) return 0;
         return $daysRemaining * $this->daily_budget;
+    }
+
+    // Gasto atual (accessor)
+    public function getSpentAttribute()
+    {
+        $daysElapsed = $this->start_date->diffInDays(now());
+        if ($daysElapsed > $this->days) {
+            return $this->amount;
+        }
+        return min($daysElapsed * $this->daily_budget, $this->amount);
     }
 }

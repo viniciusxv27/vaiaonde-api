@@ -16,6 +16,14 @@ class Banner extends Model
 
     protected $fillable = [
         'image',
+        'title',
+        'image_url',
+        'link',
+        'is_active',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
     ];
 
 }

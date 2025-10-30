@@ -33,20 +33,24 @@
                         <i class="fas fa-video text-black text-2xl"></i>
                     </div>
                     <div>
-                        <h1 class="text-xl font-bold">Vai Aonde</h1>
-                        <p class="text-xs text-[#FEB800]">Influencer Panel</p>
+                        <img src="/logo.png" alt="Vai Aonde" class="h-10 w-auto" style="filter: brightness(0) invert(1);">
+                        <p class="text-xs text-[#FEB800]">Area de Influenciador</p>
                     </div>
                 </div>
                 
                 <!-- User Info -->
                 <div class="bg-gray-900 rounded-lg p-4 mb-6 border border-[#FEB800]">
                     <div class="flex items-center space-x-3">
-                        <div class="w-12 h-12 bg-[#FEB800] rounded-full flex items-center justify-center">
-                            <i class="fas fa-user text-black text-xl"></i>
+                        <div class="w-12 h-12 bg-[#FEB800] rounded-full flex items-center justify-center overflow-hidden">
+                            @if(auth()->user()->avatar)
+                                <img src="{{ auth()->user()->avatar }}" alt="{{ auth()->user()->name }}" class="w-full h-full object-cover rounded-full">
+                            @else
+                                <i class="fas fa-user text-black text-xl"></i>
+                            @endif
                         </div>
                         <div class="flex-1">
-                            <p class="font-semibold text-sm truncate">{{ auth()->user()->name }}</p>
-                            <p class="text-xs text-gray-400">{{ auth()->user()->email }}</p>
+                            <p class="font-semibold text-sm truncate">{{ collect(explode(' ', trim(auth()->user()->name ?? '')))->first() }}</p>
+                            <p class="text-xs text-gray-400">@ {{ auth()->user()->username }}</p>
                         </div>
                     </div>
                     <div class="mt-3 pt-3 border-t border-gray-700">
@@ -69,7 +73,7 @@
                         <span>Propostas</span>
                     </a>
                     
-                    <a href="{{ route('influencer.videos') }}" class="flex items-center space-x-3 px-4 py-3 rounded-lg transition {{ request()->routeIs('influencer.videos*') ? 'bg-gray-900 border-l-4 border-[#FEB800] font-bold' : 'hover:bg-gray-900' }}">
+                    <a href="{{ route('influencer.videos.index') }}" class="flex items-center space-x-3 px-4 py-3 rounded-lg transition {{ request()->routeIs('influencer.videos*') ? 'bg-gray-900 border-l-4 border-[#FEB800] font-bold' : 'hover:bg-gray-900' }}">
                         <i class="fas fa-video w-5 {{ request()->routeIs('influencer.videos*') ? 'text-[#FEB800]' : '' }}"></i>
                         <span>Meus Vídeos</span>
                     </a>
@@ -135,8 +139,12 @@
                             
                             <!-- User Menu -->
                             <div class="flex items-center space-x-3 px-4 py-2 bg-black text-white rounded-lg border-2 border-[#FEB800] shadow-lg">
-                                <div class="w-10 h-10 bg-[#FEB800] rounded-full flex items-center justify-center text-black">
-                                    <i class="fas fa-user"></i>
+                                <div class="w-10 h-10 bg-[#FEB800] rounded-full flex items-center justify-center text-black overflow-hidden">
+                                    @if(auth()->user()->avatar)
+                                        <img src="{{ auth()->user()->avatar }}" alt="{{ auth()->user()->name }}" class="w-full h-full object-cover">
+                                    @else
+                                        <i class="fas fa-user"></i>
+                                    @endif
                                 </div>
                                 <div>
                                     <p class="text-sm font-semibold">{{ auth()->user()->name }}</p>
@@ -182,6 +190,18 @@
             </div>
         </main>
     </div>
+
+    <script>
+        // Refresh CSRF token periodically to prevent 419 errors
+        setInterval(function() {
+            fetch('/csrf-token')
+                .then(response => response.json())
+                .then(data => {
+                    document.querySelector('meta[name="csrf-token"]').setAttribute('content', data.token);
+                })
+                .catch(error => console.log('Error refreshing CSRF token'));
+        }, 600000); // Refresh every 10 minutes
+    </script>
 
     @stack('scripts')
 </body>

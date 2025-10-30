@@ -18,6 +18,7 @@ class User extends Authenticatable implements MustVerifyEmail, JWTSubject
 
     protected $fillable = [
         'name',
+        'username',
         'email',
         'birthday',
         'phone',
@@ -35,6 +36,13 @@ class User extends Authenticatable implements MustVerifyEmail, JWTSubject
         'wallet_balance',
         'pix_key',
         'abacatepay_customer_id',
+        'bio',
+        'avatar',
+        'instagram_url',
+        'youtube_url',
+        'tiktok_url',
+        'twitter_url',
+        'balance',
     ];
 
     protected $hidden = [

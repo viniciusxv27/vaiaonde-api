@@ -132,5 +132,17 @@
             </main>
         </div>
     </div>
+
+    <script>
+        // Refresh CSRF token periodically to prevent 419 errors
+        setInterval(function() {
+            fetch('/csrf-token')
+                .then(response => response.json())
+                .then(data => {
+                    document.querySelector('meta[name="csrf-token"]').setAttribute('content', data.token);
+                })
+                .catch(error => console.log('Error refreshing CSRF token'));
+        }, 600000); // Refresh every 10 minutes
+    </script>
 </body>
 </html>

@@ -707,7 +707,9 @@ class PartnerWebController extends Controller
             ->with('place.city')
             ->get();
 
-        return view('partner.featured', compact('places', 'activeFeatured'));
+        $featuredPrice = \App\Models\Setting::get('featured_price', '39.90');
+
+        return view('partner.featured', compact('places', 'activeFeatured', 'featuredPrice'));
     }
 
     public function purchaseFeatured(Request $request)
@@ -723,7 +725,7 @@ class PartnerWebController extends Controller
             return back()->with('error', 'Você não possui este lugar');
         }
 
-        $amount = 39.90;
+        $amount = floatval(\App\Models\Setting::get('featured_price', '39.90'));
 
         if ($user->wallet_balance < $amount) {
             return back()->with('error', 'Saldo insuficiente. Adicione saldo na sua carteira.');
@@ -767,7 +769,8 @@ class PartnerWebController extends Controller
             return back()->with('success', 'Lugar destacado com sucesso! Estará visível por 30 dias.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Erro ao processar pagamento');
+            \Log::error('Erro ao comprar destaque: ' . $e->getMessage());
+            return back()->with('error', 'Erro ao processar pagamento: ' . $e->getMessage());
         }
     }
 

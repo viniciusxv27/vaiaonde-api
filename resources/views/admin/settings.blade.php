@@ -17,7 +17,7 @@
                 <input 
                     type="text" 
                     name="app_name" 
-                    value="{{ config('app.name') }}"
+                    value="{{ old('app_name', $settings['app_name'] ?? config('app.name')) }}"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
             </div>
@@ -27,7 +27,7 @@
                 <input 
                     type="email" 
                     name="contact_email" 
-                    value="contato@vaiaonde.com"
+                    value="{{ old('contact_email', $settings['contact_email'] ?? 'contato@vaiaonde.com') }}"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
             </div>
@@ -43,7 +43,7 @@
                             <input 
                                 type="number" 
                                 name="featured_price" 
-                                value="39.90"
+                                value="{{ old('featured_price', $settings['featured_price'] ?? '39.90') }}"
                                 step="0.01"
                                 class="flex-1 px-4 py-2 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-blue-500"
                             >
@@ -57,7 +57,7 @@
                             <input 
                                 type="number" 
                                 name="min_withdrawal" 
-                                value="20.00"
+                                value="{{ old('min_withdrawal', $settings['min_withdrawal'] ?? '20.00') }}"
                                 step="0.01"
                                 class="flex-1 px-4 py-2 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-blue-500"
                             >

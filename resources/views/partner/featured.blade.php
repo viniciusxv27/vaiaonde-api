@@ -30,7 +30,7 @@
                 </div>
             </div>
             <div class="text-right">
-                <p class="text-5xl font-bold">R$ 39,90</p>
+                <p class="text-5xl font-bold">R$ {{ number_format($featuredPrice ?? 39.90, 2, ',', '.') }}</p>
                 <p class="text-sm opacity-90">por 30 dias</p>
             </div>
         </div>
@@ -119,7 +119,7 @@
                                 @csrf
                                 <input type="hidden" name="place_id" value="{{ $place->id }}">
                                 <button type="submit" class="bg-yellow-500 text-white px-6 py-2 rounded-lg font-semibold hover:bg-yellow-600 transition">
-                                    <i class="fas fa-star mr-2"></i>Destacar por R$ 39,90
+                                    <i class="fas fa-star mr-2"></i>Destacar por R$ {{ number_format($featuredPrice ?? 39.90, 2, ',', '.') }}
                                 </button>
                             </form>
                         </div>
