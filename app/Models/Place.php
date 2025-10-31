@@ -53,6 +53,18 @@ class Place extends Model
     {
         return $this->belongsTo(City::class, 'city_id');
     }
+    
+    public function getFirstCategoryAttribute()
+    {
+        if (!$this->categories_ids) {
+            return null;
+        }
+        
+        $categoryIds = explode(',', $this->categories_ids);
+        $firstCategoryId = trim($categoryIds[0]);
+        
+        return Categorie::find($firstCategoryId);
+    }
 
     public function subscription()
     {

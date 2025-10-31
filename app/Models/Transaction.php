@@ -23,6 +23,8 @@ class Transaction extends Model
         'payment_method',
         'payment_id',
         'pix_key',
+        'stripe_charge_id',
+        'error_message',
         'status',
     ];
 

@@ -18,6 +18,9 @@
                 <a href="?status=accepted" class="py-4 px-1 border-b-2 font-medium text-sm {{ request('status') == 'accepted' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
                     Aceitas ({{ $counts['accepted'] ?? 0 }})
                 </a>
+                <a href="?status=submitted_for_approval" class="py-4 px-1 border-b-2 font-medium text-sm {{ request('status') == 'submitted_for_approval' ? 'border-purple-500 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+                    Em Aprovação ({{ $counts['submitted_for_approval'] ?? 0 }})
+                </a>
                 <a href="?status=completed" class="py-4 px-1 border-b-2 font-medium text-sm {{ request('status') == 'completed' ? 'border-green-500 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
                     Concluídas ({{ $counts['completed'] ?? 0 }})
                 </a>
@@ -50,6 +53,10 @@
                                     @elseif($proposal->status == 'accepted')
                                     <span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
                                         <i class="fas fa-check"></i> Em Andamento
+                                    </span>
+                                    @elseif($proposal->status == 'submitted_for_approval')
+                                    <span class="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded">
+                                        <i class="fas fa-hourglass-half"></i> Aguardando Aprovação
                                     </span>
                                     @elseif($proposal->status == 'completed')
                                     <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
@@ -108,6 +115,21 @@
                                 <i class="fas fa-hourglass-half mr-2"></i>Aguardando Conclusão
                             </button>
                         </div>
+                        @elseif($proposal->status == 'submitted_for_approval')
+                        <div class="mt-4 space-y-2">
+                            <form method="POST" action="{{ route('partner.proposals.approve', $proposal->id) }}" class="inline">
+                                @csrf
+                                <button type="submit" class="w-full bg-purple-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-purple-700 transition">
+                                    <i class="fas fa-check-double mr-2"></i>Aprovar e Pagar
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ route('partner.proposals.reject', $proposal->id) }}" class="inline">
+                                @csrf
+                                <button type="submit" class="w-full bg-red-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-red-700 transition">
+                                    <i class="fas fa-times mr-2"></i>Rejeitar
+                                </button>
+                            </form>
+                        </div>
                         @elseif($proposal->status == 'completed')
                         <div class="mt-4">
                             <p class="text-xs text-gray-500">Concluída em</p>
@@ -116,9 +138,16 @@
                         @endif
                         
                         <div class="mt-4">
-                            <a href="{{ route('partner.chat', ['proposal_id' => $proposal->id]) }}" class="text-blue-600 hover:text-blue-700 text-sm">
+                            @php
+                                $chat = \App\Models\Chat::where('place_id', $proposal->place_id)
+                                    ->where('influencer_id', $proposal->influencer_id)
+                                    ->first();
+                            @endphp
+                            @if($chat)
+                            <a href="{{ route('partner.chats.show', $chat->id) }}" class="text-blue-600 hover:text-blue-700 text-sm">
                                 <i class="fas fa-comments mr-1"></i>Chat
                             </a>
+                            @endif
                         </div>
                     </div>
                 </div>

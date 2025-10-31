@@ -89,6 +89,28 @@
                     </a>
                     
                     <div class="pt-4 mt-4 border-t border-gray-800">
+                        <!-- Help Menu -->
+                        <div x-data="{ open: false }" class="relative">
+                            <button @click="open = !open" class="w-full flex items-center justify-between px-4 py-3 rounded-lg transition hover:bg-gray-900">
+                                <div class="flex items-center space-x-3">
+                                    <i class="fas fa-question-circle w-5 text-[#FEB800]"></i>
+                                    <span>Ajuda</span>
+                                </div>
+                                <i class="fas fa-chevron-down text-xs transition-transform" :class="open ? 'rotate-180' : ''"></i>
+                            </button>
+                            
+                            <div x-show="open" x-transition class="mt-2 ml-4 space-y-1" style="display: none;">
+                                <a href="https://wa.me/{{ \App\Models\Setting::get('help_whatsapp', '5511999999999') }}?text=Olá! Preciso de ajuda com a plataforma Vai Aonde" target="_blank" class="flex items-center space-x-3 px-4 py-2 rounded-lg transition hover:bg-gray-900">
+                                    <i class="fab fa-whatsapp w-5 text-green-500"></i>
+                                    <span class="text-sm">WhatsApp</span>
+                                </a>
+                                <a href="mailto:{{ \App\Models\Setting::get('help_email', 'ajuda@vaiaonde.com.br') }}?subject=Suporte - Influenciador" class="flex items-center space-x-3 px-4 py-2 rounded-lg transition hover:bg-gray-900">
+                                    <i class="fas fa-envelope w-5 text-blue-500"></i>
+                                    <span class="text-sm">Email</span>
+                                </a>
+                            </div>
+                        </div>
+                        
                         <a href="{{ route('influencer.profile') }}" class="flex items-center space-x-3 px-4 py-3 rounded-lg transition {{ request()->routeIs('influencer.profile') ? 'bg-gray-900 border-l-4 border-[#FEB800] font-bold' : 'hover:bg-gray-900' }}">
                             <i class="fas fa-user-edit w-5 {{ request()->routeIs('influencer.profile') ? 'text-[#FEB800]' : '' }}"></i>
                             <span>Meu Perfil</span>

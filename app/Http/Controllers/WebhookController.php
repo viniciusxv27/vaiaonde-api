@@ -53,6 +53,7 @@ class WebhookController extends Controller
 
                 // Credita saldo na carteira do usuário
                 $user = $billing->user;
+                $balanceBefore = $user->wallet_balance;
                 $user->wallet_balance += $billing->amount;
                 $user->save();
 
@@ -61,7 +62,10 @@ class WebhookController extends Controller
                     'user_id' => $user->id,
                     'type' => 'deposit',
                     'amount' => $billing->amount,
+                    'balance_before' => $balanceBefore,
+                    'balance_after' => $user->wallet_balance,
                     'description' => 'Depósito via PIX - AbacatePay',
+                    'payment_method' => 'pix',
                     'status' => 'completed'
                 ]);
 

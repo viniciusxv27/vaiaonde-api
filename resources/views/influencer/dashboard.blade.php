@@ -99,7 +99,7 @@
                     <div class="flex items-start justify-between">
                         <div class="flex-1">
                             <div class="flex items-center space-x-2 mb-2">
-                                <h4 class="font-semibold text-gray-800">{{ $proposal->place_name }}</h4>
+                                <h4 class="font-semibold text-gray-800">{{ $proposal->title }}</h4>
                                 @if($proposal->status == 'pending')
                                 <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
                                     Pendente
@@ -108,35 +108,30 @@
                                 <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
                                     Aceita
                                 </span>
+                                @elseif($proposal->status == 'submitted_for_approval')
+                                <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                    Enviado para Aprovação
+                                </span>
+                                @elseif($proposal->status == 'completed')
+                                <span class="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                                    Concluída
+                                </span>
                                 @else
                                 <span class="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
                                     Rejeitada
                                 </span>
                                 @endif
                             </div>
-                            <p class="text-sm text-gray-600 mb-3">{{ Str::limit($proposal->message, 120) }}</p>
+                            <p class="text-sm text-gray-600 mb-1">
+                                <i class="fas fa-store mr-1"></i>{{ $proposal->place->name ?? 'N/A' }}
+                            </p>
+                            <p class="text-sm text-gray-600 mb-3">{{ Str::limit($proposal->description ?? '', 120) }}</p>
                             <div class="flex items-center space-x-4 text-sm text-gray-500">
-                                <span><i class="fas fa-map-marker-alt mr-1"></i>{{ $proposal->city_name }}</span>
-                                <span><i class="fas fa-dollar-sign mr-1"></i>R$ {{ number_format($proposal->payment_amount, 2, ',', '.') }}</span>
+                                <span><i class="fas fa-user mr-1"></i>{{ $proposal->place->owner->name ?? 'N/A' }}</span>
+                                <span><i class="fas fa-dollar-sign mr-1"></i>R$ {{ number_format($proposal->amount ?? 0, 2, ',', '.') }}</span>
                                 <span><i class="fas fa-calendar mr-1"></i>{{ $proposal->created_at->diffForHumans() }}</span>
                             </div>
                         </div>
-                        @if($proposal->status == 'pending')
-                        <div class="flex space-x-2 ml-4">
-                            <form method="POST" action="{{ route('influencer.proposals.accept', $proposal->id) }}">
-                                @csrf
-                                <button type="submit" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm transition">
-                                    <i class="fas fa-check"></i> Aceitar
-                                </button>
-                            </form>
-                            <form method="POST" action="{{ route('influencer.proposals.reject', $proposal->id) }}">
-                                @csrf
-                                <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm transition">
-                                    <i class="fas fa-times"></i> Rejeitar
-                                </button>
-                            </form>
-                        </div>
-                        @endif
                     </div>
                 </div>
                 @empty

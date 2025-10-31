@@ -39,7 +39,7 @@ class AdminWebController extends Controller
 
         $recentTransactions = Transaction::with('user')
             ->latest()
-            ->take(10)
+            ->take(6)
             ->get();
 
         // Dados para gráficos
@@ -535,12 +535,16 @@ class AdminWebController extends Controller
             'contact_email' => 'required|email|max:255',
             'featured_price' => 'required|numeric|min:0',
             'min_withdrawal' => 'required|numeric|min:0',
+            'help_email' => 'required|email|max:255',
+            'help_whatsapp' => 'required|string|max:20',
         ]);
 
         \App\Models\Setting::set('app_name', $request->app_name);
         \App\Models\Setting::set('contact_email', $request->contact_email);
         \App\Models\Setting::set('featured_price', $request->featured_price);
         \App\Models\Setting::set('min_withdrawal', $request->min_withdrawal);
+        \App\Models\Setting::set('help_email', $request->help_email);
+        \App\Models\Setting::set('help_whatsapp', $request->help_whatsapp);
 
         return back()->with('success', 'Configurações atualizadas com sucesso!');
     }
@@ -676,5 +680,89 @@ class AdminWebController extends Controller
         $category->delete();
 
         return back()->with('success', 'Categoria excluída com sucesso!');
+    }
+
+    // Club Plans CRUD
+    public function clubPlans()
+    {
+        $plans = \App\Models\ClubPlan::latest()->get();
+        return view('admin.club-plans.index', compact('plans'));
+    }
+
+    public function createClubPlan()
+    {
+        return view('admin.club-plans.create');
+    }
+
+    public function storeClubPlan(Request $request)
+    {
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'benefits' => 'required|array|min:1',
+            'benefits.*' => 'required|string|max:255',
+            'price' => 'required|numeric|min:0',
+            'duration_days' => 'required|integer|min:1',
+        ]);
+
+        \App\Models\ClubPlan::create([
+            'title' => $request->title,
+            'description' => $request->description,
+            'benefits' => $request->benefits,
+            'price' => $request->price,
+            'duration_days' => $request->duration_days,
+            'is_active' => true,
+        ]);
+
+        return redirect()->route('admin.club-plans')->with('success', 'Plano criado com sucesso!');
+    }
+
+    public function editClubPlan($id)
+    {
+        $plan = \App\Models\ClubPlan::findOrFail($id);
+        return view('admin.club-plans.edit', compact('plan'));
+    }
+
+    public function updateClubPlan(Request $request, $id)
+    {
+        $plan = \App\Models\ClubPlan::findOrFail($id);
+
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'benefits' => 'required|array|min:1',
+            'benefits.*' => 'required|string|max:255',
+            'price' => 'required|numeric|min:0',
+            'duration_days' => 'required|integer|min:1',
+            'is_active' => 'boolean',
+        ]);
+
+        $plan->update([
+            'title' => $request->title,
+            'description' => $request->description,
+            'benefits' => $request->benefits,
+            'price' => $request->price,
+            'duration_days' => $request->duration_days,
+            'is_active' => $request->has('is_active'),
+        ]);
+
+        return redirect()->route('admin.club-plans')->with('success', 'Plano atualizado com sucesso!');
+    }
+
+    public function deleteClubPlan($id)
+    {
+        $plan = \App\Models\ClubPlan::findOrFail($id);
+        $plan->delete();
+
+        return back()->with('success', 'Plano excluído com sucesso!');
+    }
+
+    public function toggleClubPlan($id)
+    {
+        $plan = \App\Models\ClubPlan::findOrFail($id);
+        $plan->update(['is_active' => !$plan->is_active]);
+
+        $status = $plan->is_active ? 'ativado' : 'desativado';
+        return back()->with('success', "Plano {$status} com sucesso!");
     }
 }

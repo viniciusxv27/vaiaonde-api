@@ -33,6 +33,36 @@
             </div>
             
             <div>
+                <h3 class="text-lg font-semibold mb-4">Suporte e Ajuda</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-semibold mb-2">E-mail de Ajuda</label>
+                        <input 
+                            type="email" 
+                            name="help_email" 
+                            value="{{ old('help_email', $settings['help_email'] ?? 'ajuda@vaiaonde.com.br') }}"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="ajuda@vaiaonde.com.br"
+                        >
+                        <p class="text-xs text-gray-500 mt-1">Exibido nos menus de Proprietário e Influenciador</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 text-sm font-semibold mb-2">WhatsApp de Ajuda</label>
+                        <input 
+                            type="text" 
+                            name="help_whatsapp" 
+                            value="{{ old('help_whatsapp', $settings['help_whatsapp'] ?? '5511999999999') }}"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="5511999999999"
+                        >
+                        <p class="text-xs text-gray-500 mt-1">Formato: DDI + DDD + Número (sem espaços)</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
                 <h3 class="text-lg font-semibold mb-4">Preços e Limites</h3>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

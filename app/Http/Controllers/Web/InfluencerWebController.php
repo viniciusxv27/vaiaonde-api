@@ -9,6 +9,7 @@ use App\Models\Transaction;
 use App\Models\Chat;
 use App\Models\Message;
 use App\Models\Boost;
+use App\Models\Place;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -65,7 +66,7 @@ class InfluencerWebController extends Controller
         
         // Recent proposals
         $recentProposals = Proposal::where('influencer_id', $user->id)
-            ->with('place')
+            ->with(['place', 'place.owner'])
             ->latest()
             ->take(5)
             ->get();
@@ -203,27 +204,36 @@ class InfluencerWebController extends Controller
         }
     }
 
-    public function proposals()
+    public function proposals(Request $request)
     {
         $user = Auth::user();
-        $proposals = Proposal::where('influencer_id', $user->id)
-            ->with(['place', 'place.owner'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(15);
+        
+        $status = $request->get('status', 'all');
+        
+        $query = Proposal::where('influencer_id', $user->id)
+            ->with(['place', 'place.owner', 'place.city']);
 
-        return view('influencer.proposals', compact('proposals'));
+        if ($status != 'all') {
+            $query->where('status', $status);
+        }
+
+        $proposals = $query->orderBy('created_at', 'desc')->paginate(15);
+
+        // Calcular estatísticas
+        $pendingCount = Proposal::where('influencer_id', $user->id)->where('status', 'pending')->count();
+        $acceptedCount = Proposal::where('influencer_id', $user->id)->where('status', 'accepted')->count();
+        $rejectedCount = Proposal::where('influencer_id', $user->id)->where('status', 'rejected')->count();
+        $totalEarned = Proposal::where('influencer_id', $user->id)
+            ->where('status', 'completed')
+            ->sum('amount');
+
+        return view('influencer.proposals', compact('proposals', 'pendingCount', 'acceptedCount', 'rejectedCount', 'totalEarned'));
     }
 
     public function acceptProposal($id)
     {
-        $user = Auth::user();
-        $proposal = Proposal::where('id', $id)
-            ->where('influencer_id', $user->id)
-            ->firstOrFail();
-
-        $proposal->update(['status' => 'accepted']);
-
-        return back()->with('success', 'Proposta aceita com sucesso!');
+        // Influencer NÃO pode aceitar - apenas proprietário pode aceitar
+        return back()->with('error', 'Apenas o proprietário pode aceitar propostas.');
     }
 
     public function rejectProposal($id)
@@ -238,16 +248,108 @@ class InfluencerWebController extends Controller
         return back()->with('success', 'Proposta recusada.');
     }
 
+    public function submitProposalForApproval($id)
+    {
+        $user = Auth::user();
+        $proposal = Proposal::where('id', $id)
+            ->where('influencer_id', $user->id)
+            ->where('status', 'accepted')
+            ->firstOrFail();
+
+        $proposal->update(['status' => 'submitted_for_approval']);
+
+        return back()->with('success', 'Proposta enviada para aprovação do proprietário!');
+    }
+
+    public function getProposalsByPlace($placeId)
+    {
+        $user = Auth::user();
+        
+        $proposals = Proposal::where('influencer_id', $user->id)
+            ->where('place_id', $placeId)
+            ->whereIn('status', ['accepted', 'submitted_for_approval'])
+            ->get()
+            ->map(function($proposal) {
+                return [
+                    'id' => $proposal->id,
+                    'title' => $proposal->title,
+                    'amount' => $proposal->amount,
+                    'amount_formatted' => number_format($proposal->amount, 2, ',', '.'),
+                    'status' => $proposal->status,
+                ];
+            });
+
+        return response()->json(['proposals' => $proposals]);
+    }
+
+    public function sendProposal(Request $request, $chatId)
+    {
+        $request->validate([
+            'message' => 'required|string|max:1000',
+            'payment_amount' => 'required|numeric|min:0',
+            'delivery_date' => 'nullable|date',
+        ]);
+
+        $user = Auth::user();
+        $chat = Chat::where('id', $chatId)
+            ->where('influencer_id', $user->id)
+            ->with('place')
+            ->firstOrFail();
+
+        $proposal = Proposal::create([
+            'place_id' => $chat->place_id,
+            'influencer_id' => $user->id,
+            'title' => 'Proposta de Divulgação - ' . $chat->place->name,
+            'description' => $request->message,
+            'amount' => $request->payment_amount,
+            'deadline_days' => $request->delivery_date ? now()->diffInDays($request->delivery_date) : 7,
+            'status' => 'pending',
+        ]);
+
+        // Enviar mensagem no chat informando sobre a proposta
+        Message::create([
+            'chat_id' => $chat->id,
+            'sender_id' => $user->id,
+            'message' => '📋 Proposta enviada: ' . $request->message . ' | Valor: R$ ' . number_format($request->payment_amount, 2, ',', '.'),
+            'type' => 'proposal',
+            'read' => false,
+        ]);
+
+        return back()->with('success', 'Proposta enviada com sucesso!');
+    }
+
+    public function deleteProposal($id)
+    {
+        $user = Auth::user();
+        $proposal = Proposal::where('id', $id)
+            ->where('influencer_id', $user->id)
+            ->where('status', 'pending')
+            ->firstOrFail();
+
+        $proposal->delete();
+
+        return back()->with('success', 'Proposta excluída com sucesso!');
+    }
+
     public function chats()
     {
         $user = Auth::user();
-        $chats = Chat::where('influencer_id', $user->id)
-            ->with(['place', 'place.owner', 'messages' => function($q) {
-                $q->latest()->limit(1);
-            }])
-            ->get();
+        
+        $conversations = Chat::where('influencer_id', $user->id)
+            ->with(['place', 'place.owner'])
+            ->get()
+            ->map(function($chat) use ($user) {
+                $lastMessage = $chat->messages()->latest()->first();
+                return (object)[
+                    'id' => $chat->id,
+                    'partner_name' => $chat->place->name ?? 'Estabelecimento',
+                    'last_message' => $lastMessage ? $lastMessage->message : 'Sem mensagens',
+                    'last_message_at' => $lastMessage ? $lastMessage->created_at : $chat->created_at,
+                    'unread_count' => $chat->messages()->where('sender_id', '!=', $user->id)->where('read', false)->count(),
+                ];
+            });
 
-        return view('influencer.chats', compact('chats'));
+        return view('influencer.chats', compact('conversations'));
     }
 
     public function showChat($id)
@@ -255,16 +357,104 @@ class InfluencerWebController extends Controller
         $user = Auth::user();
         $chat = Chat::where('id', $id)
             ->where('influencer_id', $user->id)
-            ->with(['place', 'place.owner', 'messages.user'])
+            ->with(['place', 'place.owner', 'messages.sender'])
             ->firstOrFail();
 
         // Mark messages as read
         Message::where('chat_id', $chat->id)
-            ->where('user_id', '!=', $user->id)
-            ->where('is_read', false)
-            ->update(['is_read' => true]);
+            ->where('sender_id', '!=', $user->id)
+            ->where('read', false)
+            ->update(['read' => true]);
 
-        return view('influencer.chat-show', compact('chat'));
+        $activeChat = (object)[
+            'id' => $chat->id,
+            'partner_name' => $chat->place->name ?? 'Estabelecimento',
+            'place_name' => $chat->place->name ?? 'Estabelecimento',
+        ];
+
+        $messages = $chat->messages()->with('sender')->orderBy('created_at')->get();
+        
+        $conversations = Chat::where('influencer_id', $user->id)
+            ->with(['place', 'place.owner'])
+            ->get()
+            ->map(function($c) use ($user) {
+                $lastMessage = $c->messages()->latest()->first();
+                return (object)[
+                    'id' => $c->id,
+                    'partner_name' => $c->place->name ?? 'Estabelecimento',
+                    'last_message' => $lastMessage ? $lastMessage->message : 'Sem mensagens',
+                    'last_message_at' => $lastMessage ? $lastMessage->created_at : $c->created_at,
+                    'unread_count' => $c->messages()->where('sender_id', '!=', $user->id)->where('read', false)->count(),
+                ];
+            });
+
+        return view('influencer.chats', compact('activeChat', 'messages', 'conversations'));
+    }
+
+    public function getPlaces()
+    {
+        try {
+            $places = Place::select('id', 'name', 'city_id', 'categories_ids', 'card_image')
+                ->where('is_active', 1)
+                ->get()
+                ->map(function($place) {
+                    $city = \App\Models\City::find($place->city_id);
+                    
+                    // Pega a primeira categoria se houver
+                    $categoryName = 'Sem categoria';
+                    if ($place->categories_ids) {
+                        $categoryIds = explode(',', $place->categories_ids);
+                        if (!empty($categoryIds[0])) {
+                            $category = \App\Models\Categorie::find($categoryIds[0]);
+                            $categoryName = $category->name ?? 'Sem categoria';
+                        }
+                    }
+                    
+                    $videosCount = \App\Models\Video::where('place_id', $place->id)->count();
+                    $images = \App\Models\PlaceImage::where('place_id', $place->id)->first();
+                    
+                    return [
+                        'id' => $place->id,
+                        'name' => $place->name,
+                        'city' => $city->name ?? 'Não informado',
+                        'category' => $categoryName,
+                        'image' => $images->image_url ?? $place->card_image ?? null,
+                        'videos_count' => $videosCount,
+                    ];
+                });
+
+            return response()->json(['places' => $places]);
+        } catch (\Exception $e) {
+            \Log::error('Error getting places: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            return response()->json(['places' => [], 'error' => $e->getMessage()]);
+        }
+    }
+
+    public function startChatWithPlace(Request $request)
+    {
+        $request->validate([
+            'place_id' => 'required|exists:place,id',
+        ]);
+
+        $user = Auth::user();
+
+        // Verifica se já existe um chat
+        $existingChat = Chat::where('place_id', $request->place_id)
+            ->where('influencer_id', $user->id)
+            ->first();
+
+        if ($existingChat) {
+            return response()->json(['success' => true, 'chat_id' => $existingChat->id]);
+        }
+
+        // Cria novo chat
+        $chat = Chat::create([
+            'place_id' => $request->place_id,
+            'influencer_id' => $user->id,
+        ]);
+
+        return response()->json(['success' => true, 'chat_id' => $chat->id]);
     }
 
     public function sendMessage(Request $request, $id)
@@ -280,9 +470,10 @@ class InfluencerWebController extends Controller
 
         Message::create([
             'chat_id' => $chat->id,
-            'user_id' => $user->id,
+            'sender_id' => $user->id,
             'message' => $request->message,
-            'is_read' => false,
+            'type' => 'text',
+            'read' => false,
         ]);
 
         return back()->with('success', 'Mensagem enviada!');
@@ -338,6 +529,7 @@ class InfluencerWebController extends Controller
         try {
             $request->validate([
                 'place_id' => 'nullable|exists:place,id',
+                'proposal_id' => 'nullable|exists:proposals,id',
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
                 'video' => 'required|file|mimes:mp4,mov,avi,wmv|max:20480', // 20MB (temporário para testar)
@@ -417,10 +609,20 @@ class InfluencerWebController extends Controller
             // Determinar se está ativo baseado no status
             $isActive = ($request->status ?? 'published') === 'published';
 
+            // Se tiver proposal_id, puxar place_id automaticamente
+            $placeId = $request->place_id;
+            if ($request->proposal_id) {
+                $proposal = Proposal::find($request->proposal_id);
+                if ($proposal) {
+                    $placeId = $proposal->place_id;
+                }
+            }
+
             // Criar vídeo
             $videoRecord = Video::create([
                 'user_id' => $user->id,
-                'place_id' => $request->place_id,
+                'place_id' => $placeId,
+                'proposal_id' => $request->proposal_id,
                 'title' => $request->title,
                 'description' => $request->description,
                 'video_url' => $videoUrl,
@@ -491,9 +693,18 @@ class InfluencerWebController extends Controller
             ->with('place')
             ->firstOrFail();
 
-        $places = \App\Models\Place::where('owner_id', $user->id)->get();
+        $places = \App\Models\Place::select('id', 'name')->get();
+        
+        // Get proposals for the current place if exists
+        $proposals = [];
+        if ($video->place_id) {
+            $proposals = Proposal::where('influencer_id', $user->id)
+                ->where('place_id', $video->place_id)
+                ->whereIn('status', ['accepted', 'submitted_for_approval'])
+                ->get();
+        }
 
-        return view('influencer.videos-edit', compact('video', 'places'));
+        return view('influencer.videos-edit', compact('video', 'places', 'proposals'));
     }
 
     public function updateVideo(Request $request, $id)
@@ -505,6 +716,7 @@ class InfluencerWebController extends Controller
 
         $request->validate([
             'place_id' => 'nullable|exists:place,id',
+            'proposal_id' => 'nullable|exists:proposals,id',
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'video' => 'nullable|file|mimes:mp4,mov,avi,wmv|max:512000', // 500MB
@@ -517,10 +729,19 @@ class InfluencerWebController extends Controller
 
             $data = [
                 'place_id' => $request->place_id,
+                'proposal_id' => $request->proposal_id,
                 'title' => $request->title,
                 'description' => $request->description,
                 'active' => ($request->status ?? 'published') === 'published',
             ];
+            
+            // Se tiver proposal_id, puxar o place_id automaticamente
+            if ($request->proposal_id) {
+                $proposal = Proposal::find($request->proposal_id);
+                if ($proposal) {
+                    $data['place_id'] = $proposal->place_id;
+                }
+            }
 
             // Se enviou novo vídeo, deletar o antigo e fazer upload do novo
             if ($request->hasFile('video') && $request->file('video')->isValid()) {

@@ -14,6 +14,7 @@ class Video extends Model
     protected $fillable = [
         'user_id',
         'place_id',
+        'proposal_id',
         'title',
         'description',
         'video_url',
@@ -45,6 +46,11 @@ class Video extends Model
     public function place()
     {
         return $this->belongsTo(Place::class, 'place_id');
+    }
+
+    public function proposal()
+    {
+        return $this->belongsTo(Proposal::class, 'proposal_id');
     }
 
     public function boosts()

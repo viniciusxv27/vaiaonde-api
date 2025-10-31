@@ -246,14 +246,25 @@
                 
                 <!-- Place (from accepted proposals) -->
                 <div class="mb-4">
-                    <label class="block text-sm font-medium mb-2">Estabelecimento</label>
-                    <select name="place_id" class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                    <label class="block text-sm font-medium mb-2">Proposta Relacionada</label>
+                    <select name="proposal_id" id="proposalSelect" class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                         <option value="">Selecione (opcional)</option>
                         @foreach($acceptedProposals ?? [] as $proposal)
-                        <option value="{{ $proposal->place_id }}">{{ $proposal->place->name ?? 'Estabelecimento' }} - R$ {{ number_format($proposal->amount, 2, ',', '.') }}</option>
+                        <option value="{{ $proposal->id }}" data-place-id="{{ $proposal->place_id }}" data-place-name="{{ $proposal->place->name ?? 'Estabelecimento' }}">
+                            {{ $proposal->place->name ?? 'Estabelecimento' }} - {{ $proposal->title }} - R$ {{ number_format($proposal->amount, 2, ',', '.') }}
+                        </option>
                         @endforeach
                     </select>
-                    <p class="text-xs text-gray-500 mt-1">Vincule este vídeo a uma proposta aceita para receber o pagamento</p>
+                    <p class="text-xs text-gray-500 mt-1">Vincule este vídeo a uma proposta aceita para receber o pagamento após aprovação</p>
+                </div>
+                
+                <!-- Place Name (auto-filled from proposal) -->
+                <div class="mb-4" id="placeNameContainer" style="display: none;">
+                    <label class="block text-sm font-medium mb-2">Estabelecimento</label>
+                    <input type="text" id="placeName" readonly 
+                        class="w-full border rounded-lg px-4 py-2 bg-gray-50 text-gray-700" 
+                        placeholder="Será preenchido automaticamente">
+                    <input type="hidden" name="place_id" id="placeId">
                 </div>
                 
                 <!-- Tags -->
@@ -575,7 +586,8 @@ if (uploadForm) {
         // Adicionar campos do formulário
         formData.append('title', document.querySelector('input[name="title"]').value);
         formData.append('description', document.querySelector('textarea[name="description"]').value || '');
-        formData.append('place_id', document.querySelector('select[name="place_id"]').value || '');
+        formData.append('place_id', document.querySelector('input[name="place_id"]').value || '');
+        formData.append('proposal_id', document.querySelector('select[name="proposal_id"]').value || '');
         
         // Adicionar status
         const statusRadio = document.querySelector('input[name="status"]:checked');
@@ -1107,5 +1119,32 @@ function finalizeBoost() {
 function toggleBoostStatus() {
     pauseBoost();
 }
+
+// Auto-fill place when proposal is selected
+document.addEventListener('DOMContentLoaded', function() {
+    const proposalSelect = document.getElementById('proposalSelect');
+    const placeNameContainer = document.getElementById('placeNameContainer');
+    const placeName = document.getElementById('placeName');
+    const placeId = document.getElementById('placeId');
+    
+    if (proposalSelect) {
+        proposalSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            
+            if (this.value) {
+                const placeNameValue = selectedOption.getAttribute('data-place-name');
+                const placeIdValue = selectedOption.getAttribute('data-place-id');
+                
+                placeName.value = placeNameValue;
+                placeId.value = placeIdValue;
+                placeNameContainer.style.display = 'block';
+            } else {
+                placeName.value = '';
+                placeId.value = '';
+                placeNameContainer.style.display = 'none';
+            }
+        });
+    }
+});
 </script>
 @endpush

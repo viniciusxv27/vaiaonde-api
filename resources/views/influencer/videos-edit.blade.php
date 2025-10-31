@@ -74,7 +74,7 @@
             <!-- Place -->
             <div class="mb-4">
                 <label class="block text-sm font-medium mb-2">Estabelecimento</label>
-                <select name="place_id" class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                <select name="place_id" id="placeSelect" class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent" onchange="loadProposals(this.value)">
                     <option value="">Nenhum (opcional)</option>
                     @foreach($places ?? [] as $place)
                     <option value="{{ $place->id }}" {{ old('place_id', $video->place_id) == $place->id ? 'selected' : '' }}>
@@ -83,6 +83,22 @@
                     @endforeach
                 </select>
                 <p class="text-xs text-gray-500 mt-1">Vincule este vídeo a um estabelecimento</p>
+            </div>
+            
+            <!-- Proposals (appears when place is selected) -->
+            <div class="mb-4" id="proposalContainer" style="display: {{ old('place_id', $video->place_id) ? 'block' : 'none' }};">
+                <label class="block text-sm font-medium mb-2">Proposta Relacionada (Opcional)</label>
+                <select name="proposal_id" id="proposalSelect" class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                    <option value="">Nenhuma proposta</option>
+                    @if(isset($proposals))
+                        @foreach($proposals as $proposal)
+                        <option value="{{ $proposal->id }}" {{ old('proposal_id', $video->proposal_id) == $proposal->id ? 'selected' : '' }}>
+                            {{ $proposal->title }} - R$ {{ number_format($proposal->amount, 2, ',', '.') }}
+                        </option>
+                        @endforeach
+                    @endif
+                </select>
+                <p class="text-xs text-gray-500 mt-1">Selecione a proposta que este vídeo cumpre</p>
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -282,6 +298,56 @@ function clearThumbnailPreview() {
     const thumbnailPreviewContainer = document.getElementById('thumbnailPreviewContainer');
     
     thumbnailFileInput.value = '';
+    thumbnailPreview.src = '';
+    thumbnailPreviewContainer.classList.add('hidden');
+}
+
+// Load proposals when place is selected
+function loadProposals(placeId) {
+    const proposalContainer = document.getElementById('proposalContainer');
+    const proposalSelect = document.getElementById('proposalSelect');
+    
+    if (!placeId) {
+        proposalContainer.style.display = 'none';
+        proposalSelect.innerHTML = '<option value="">Nenhuma proposta</option>';
+        return;
+    }
+    
+    // Show loading
+    proposalSelect.innerHTML = '<option value="">Carregando propostas...</option>';
+    proposalContainer.style.display = 'block';
+    
+    // Fetch proposals for this place
+    fetch(`/influencer/proposals/by-place/${placeId}`)
+        .then(response => response.json())
+        .then(data => {
+            proposalSelect.innerHTML = '<option value="">Nenhuma proposta</option>';
+            
+            if (data.proposals && data.proposals.length > 0) {
+                data.proposals.forEach(proposal => {
+                    const option = document.createElement('option');
+                    option.value = proposal.id;
+                    option.textContent = `${proposal.title} - R$ ${proposal.amount_formatted}`;
+                    proposalSelect.appendChild(option);
+                });
+            } else {
+                proposalSelect.innerHTML += '<option value="" disabled>Nenhuma proposta encontrada para este estabelecimento</option>';
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar propostas:', error);
+            proposalSelect.innerHTML = '<option value="">Erro ao carregar propostas</option>';
+        });
+}
+
+// Load proposals on page load if place is selected
+document.addEventListener('DOMContentLoaded', function() {
+    const placeSelect = document.getElementById('placeSelect');
+    if (placeSelect && placeSelect.value) {
+        loadProposals(placeSelect.value);
+    }
+});
+
     thumbnailPreview.src = '';
     thumbnailPreviewContainer.classList.add('hidden');
 }

@@ -74,6 +74,11 @@
                     <i class="fas fa-tags w-6 {{ request()->routeIs('admin.categories*') ? 'text-[#FEB800]' : '' }}"></i>
                     <span x-show="sidebarOpen" class="ml-3">Categorias</span>
                 </a>
+                
+                <a href="{{ route('admin.club-plans') }}" class="flex items-center px-6 py-3 hover:bg-gray-900 transition {{ request()->routeIs('admin.club-plans*') ? 'bg-gray-900 border-l-4 border-[#FEB800]' : '' }}">
+                    <i class="fas fa-medal w-6 {{ request()->routeIs('admin.club-plans*') ? 'text-[#FEB800]' : '' }}"></i>
+                    <span x-show="sidebarOpen" class="ml-3">Planos do Club</span>
+                </a>
             </nav>
         </aside>
 

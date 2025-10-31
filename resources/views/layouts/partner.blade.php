@@ -46,6 +46,11 @@
                     <span x-show="sidebarOpen" class="ml-3">Contratos</span>
                 </a>
                 
+                <a href="{{ route('partner.chats') }}" class="flex items-center px-6 py-3 hover:bg-black hover:bg-opacity-10 transition {{ request()->routeIs('partner.chats*') ? 'bg-black bg-opacity-10 border-l-4 border-black font-bold' : '' }}">
+                    <i class="fas fa-comments w-6"></i>
+                    <span x-show="sidebarOpen" class="ml-3">Conversas</span>
+                </a>
+                
                 <a href="{{ route('partner.featured') }}" class="flex items-center px-6 py-3 hover:bg-black hover:bg-opacity-10 transition {{ request()->routeIs('partner.featured') ? 'bg-black bg-opacity-10 border-l-4 border-black font-bold' : '' }}">
                     <i class="fas fa-star w-6"></i>
                     <span x-show="sidebarOpen" class="ml-3">Destaque</span>
@@ -55,6 +60,28 @@
                     <i class="fas fa-wallet w-6"></i>
                     <span x-show="sidebarOpen" class="ml-3">Carteira</span>
                 </a>
+                
+                <!-- Help Menu -->
+                <div x-data="{ helpOpen: false }" class="mt-4 border-t border-black border-opacity-10 pt-4">
+                    <button @click="helpOpen = !helpOpen" class="w-full flex items-center justify-between px-6 py-3 hover:bg-black hover:bg-opacity-10 transition">
+                        <div class="flex items-center">
+                            <i class="fas fa-question-circle w-6"></i>
+                            <span x-show="sidebarOpen" class="ml-3">Ajuda</span>
+                        </div>
+                        <i x-show="sidebarOpen" class="fas fa-chevron-down text-xs transition-transform" :class="helpOpen ? 'rotate-180' : ''"></i>
+                    </button>
+                    
+                    <div x-show="helpOpen && sidebarOpen" x-transition class="ml-4 space-y-1 mt-2" style="display: none;">
+                        <a href="https://wa.me/{{ \App\Models\Setting::get('help_whatsapp', '5511999999999') }}?text=Olá! Preciso de ajuda com a plataforma Vai Aonde" target="_blank" class="flex items-center space-x-3 px-6 py-2 rounded-lg transition hover:bg-black hover:bg-opacity-10">
+                            <i class="fab fa-whatsapp text-green-700"></i>
+                            <span class="text-sm">WhatsApp</span>
+                        </a>
+                        <a href="mailto:{{ \App\Models\Setting::get('help_email', 'ajuda@vaiaonde.com.br') }}?subject=Suporte - Proprietário" class="flex items-center space-x-3 px-6 py-2 rounded-lg transition hover:bg-black hover:bg-opacity-10">
+                            <i class="fas fa-envelope text-blue-700"></i>
+                            <span class="text-sm">Email</span>
+                        </a>
+                    </div>
+                </div>
             </nav>
         </aside>
 

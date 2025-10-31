@@ -1,3 +1,4 @@
+SQLSTATE[HY000]: General error: 1364 Field 'balance_before' doesn't have a default value
 @extends('layouts.partner')
 
 @section('title', 'Dashboard')
@@ -99,9 +100,9 @@
                                 <i class="fas fa-map-marker-alt"></i> {{ $video->place->name }}
                             </p>
                             <div class="flex items-center space-x-3 text-xs text-gray-400 mt-2">
-                                <span><i class="fas fa-eye"></i> {{ number_format($video->views) }}</span>
-                                <span><i class="fas fa-heart"></i> {{ number_format($video->likes) }}</span>
-                                <span><i class="fas fa-share"></i> {{ number_format($video->shares) }}</span>
+                                <span><i class="fas fa-eye"></i> {{ number_format($video->views_count ?? 0) }}</span>
+                                <span><i class="fas fa-heart"></i> {{ number_format($video->likes_count ?? 0) }}</span>
+                                <span><i class="fas fa-share"></i> {{ number_format($video->shares_count ?? 0) }}</span>
                             </div>
                         </div>
                     </div>

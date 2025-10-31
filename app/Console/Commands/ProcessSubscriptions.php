@@ -61,6 +61,9 @@ class ProcessSubscriptions extends Command
             if ($user->wallet_balance >= $plan->price) {
                 DB::beginTransaction();
                 try {
+                    // Save balance before transaction
+                    $balanceBefore = $user->wallet_balance;
+                    
                     // Debit from wallet
                     $user->wallet_balance -= $plan->price;
                     $user->save();
@@ -68,10 +71,12 @@ class ProcessSubscriptions extends Command
                     // Create transaction
                     Transaction::create([
                         'user_id' => $user->id,
-                        'type' => 'debit',
+                        'type' => 'transfer_out',
                         'amount' => $plan->price,
+                        'balance_before' => $balanceBefore,
+                        'balance_after' => $user->wallet_balance,
                         'description' => "Renovação de assinatura: {$plan->name}",
-                        'status' => 'approved',
+                        'status' => 'completed',
                         'payment_method' => 'wallet',
                     ]);
 

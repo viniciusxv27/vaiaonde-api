@@ -39,11 +39,17 @@ Route::prefix('influencer')->name('influencer.')->middleware(['auth', 'check.inf
     
     // Proposals
     Route::get('/proposals', [App\Http\Controllers\Web\InfluencerWebController::class, 'proposals'])->name('proposals');
+    Route::get('/proposals/by-place/{placeId}', [App\Http\Controllers\Web\InfluencerWebController::class, 'getProposalsByPlace'])->name('proposals.by-place');
     Route::post('/proposals/{id}/accept', [App\Http\Controllers\Web\InfluencerWebController::class, 'acceptProposal'])->name('proposals.accept');
     Route::post('/proposals/{id}/reject', [App\Http\Controllers\Web\InfluencerWebController::class, 'rejectProposal'])->name('proposals.reject');
+    Route::post('/proposals/{id}/submit', [App\Http\Controllers\Web\InfluencerWebController::class, 'submitProposalForApproval'])->name('proposals.submit');
+    Route::post('/proposals/send/{chatId}', [App\Http\Controllers\Web\InfluencerWebController::class, 'sendProposal'])->name('proposals.send');
+    Route::delete('/proposals/{id}', [App\Http\Controllers\Web\InfluencerWebController::class, 'deleteProposal'])->name('proposals.delete');
     
     // Chats
     Route::get('/chats', [App\Http\Controllers\Web\InfluencerWebController::class, 'chats'])->name('chats');
+    Route::get('/chats/places', [App\Http\Controllers\Web\InfluencerWebController::class, 'getPlaces'])->name('chats.places');
+    Route::post('/chats/start', [App\Http\Controllers\Web\InfluencerWebController::class, 'startChatWithPlace'])->name('chats.start');
     Route::get('/chats/{id}', [App\Http\Controllers\Web\InfluencerWebController::class, 'showChat'])->name('chats.show');
     Route::post('/chats/{id}/send', [App\Http\Controllers\Web\InfluencerWebController::class, 'sendMessage'])->name('chats.send');
     
@@ -86,9 +92,12 @@ Route::prefix('partner')->name('partner.')->middleware(['auth', 'check.partner']
     Route::get('/proposals', [PartnerWebController::class, 'proposals'])->name('proposals');
     Route::post('/proposals/{id}/accept', [PartnerWebController::class, 'acceptProposal'])->name('proposals.accept');
     Route::post('/proposals/{id}/reject', [PartnerWebController::class, 'rejectProposal'])->name('proposals.reject');
+    Route::post('/proposals/{id}/approve', [PartnerWebController::class, 'approveCompletedProposal'])->name('proposals.approve');
     
     // Chats
     Route::get('/chats', [PartnerWebController::class, 'chats'])->name('chats');
+    Route::get('/chats/influencers', [PartnerWebController::class, 'getInfluencers'])->name('chats.influencers');
+    Route::post('/chats/start', [PartnerWebController::class, 'startChat'])->name('chats.start');
     Route::get('/chats/{id}', [PartnerWebController::class, 'showChat'])->name('chats.show');
     Route::post('/chats/{id}/send', [PartnerWebController::class, 'sendMessage'])->name('chats.send');
     
@@ -171,4 +180,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'check.admin'])->gro
     Route::get('/categories/{id}/edit', [AdminWebController::class, 'editCategory'])->name('categories.edit');
     Route::put('/categories/{id}', [AdminWebController::class, 'updateCategory'])->name('categories.update');
     Route::delete('/categories/{id}', [AdminWebController::class, 'deleteCategory'])->name('categories.delete');
+    
+    // Club Plans
+    Route::get('/club-plans', [AdminWebController::class, 'clubPlans'])->name('club-plans');
+    Route::get('/club-plans/create', [AdminWebController::class, 'createClubPlan'])->name('club-plans.create');
+    Route::post('/club-plans', [AdminWebController::class, 'storeClubPlan'])->name('club-plans.store');
+    Route::get('/club-plans/{id}/edit', [AdminWebController::class, 'editClubPlan'])->name('club-plans.edit');
+    Route::put('/club-plans/{id}', [AdminWebController::class, 'updateClubPlan'])->name('club-plans.update');
+    Route::delete('/club-plans/{id}', [AdminWebController::class, 'deleteClubPlan'])->name('club-plans.delete');
+    Route::post('/club-plans/{id}/toggle', [AdminWebController::class, 'toggleClubPlan'])->name('club-plans.toggle');
 });

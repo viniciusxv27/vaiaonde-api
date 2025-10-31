@@ -67,10 +67,10 @@ class PartnerWebController extends Controller
         ];
 
         $places = Place::where('owner_id', $user->id)->take(5)->get();
-        $placeNames = $places->pluck('name');
+        $placeNames = $places->pluck('name')->toArray();
         $placeViews = $places->map(function($place) {
             return Video::where('place_id', $place->id)->sum('views_count');
-        });
+        })->toArray();
 
         return view('partner.dashboard', compact(
             'stats',
@@ -387,7 +387,11 @@ class PartnerWebController extends Controller
         $placeIds = Place::where('owner_id', $user->id)->pluck('id');
         
         $videos = Video::whereIn('place_id', $placeIds)
-            ->with(['user', 'place'])
+            ->with(['user', 'place', 'boosts' => function($query) {
+                $query->where('status', 'active')
+                      ->where('end_date', '>=', now())
+                      ->latest();
+            }])
             ->latest()
             ->paginate(12);
 
@@ -414,6 +418,7 @@ class PartnerWebController extends Controller
             'total' => Proposal::whereIn('place_id', $placeIds)->count(),
             'pending' => Proposal::whereIn('place_id', $placeIds)->where('status', 'pending')->count(),
             'accepted' => Proposal::whereIn('place_id', $placeIds)->where('status', 'accepted')->count(),
+            'submitted_for_approval' => Proposal::whereIn('place_id', $placeIds)->where('status', 'submitted_for_approval')->count(),
             'completed' => Proposal::whereIn('place_id', $placeIds)->where('status', 'completed')->count(),
             'rejected' => Proposal::whereIn('place_id', $placeIds)->where('status', 'rejected')->count(),
         ];
@@ -451,9 +456,88 @@ class PartnerWebController extends Controller
             return back()->with('error', 'Sem permissão');
         }
 
-        $proposal->update(['status' => 'rejected']);
+        // Se a proposta estava "enviada para aprovação", volta para "aceita"
+        // Para que o influenciador possa refazer/ajustar
+        $newStatus = ($proposal->status == 'submitted_for_approval') ? 'accepted' : 'rejected';
+        
+        $proposal->update(['status' => $newStatus]);
 
-        return back()->with('success', 'Proposta rejeitada');
+        $message = ($newStatus == 'accepted') 
+            ? 'Proposta devolvida ao influenciador para ajustes' 
+            : 'Proposta rejeitada';
+
+        return back()->with('success', $message);
+    }
+
+    public function approveCompletedProposal($id)
+    {
+        $user = Auth::user();
+        $proposal = Proposal::findOrFail($id);
+        
+        if ($proposal->place->owner_id != $user->id) {
+            return back()->with('error', 'Sem permissão');
+        }
+
+        if ($proposal->status != 'submitted_for_approval') {
+            return back()->with('error', 'Proposta não está aguardando aprovação');
+        }
+
+        if ($user->wallet_balance < $proposal->amount) {
+            return back()->with('error', 'Saldo insuficiente na carteira');
+        }
+
+        // Transferir dinheiro do proprietário para o influencer
+        \DB::transaction(function() use ($user, $proposal) {
+            $amount = (float) $proposal->amount;
+            
+            // Salvar saldos antes da transação
+            $ownerBalanceBefore = (float) $user->wallet_balance;
+            $influencerBalanceBefore = (float) $proposal->influencer->wallet_balance;
+            
+            // Debitar da carteira do proprietário
+            $user->decrement('wallet_balance', $amount);
+            $user->refresh();
+            
+            // Creditar na carteira do influencer
+            $proposal->influencer->increment('wallet_balance', $amount);
+            $proposal->influencer->refresh();
+            
+            // Criar registro de transação para o proprietário (débito)
+            \App\Models\Transaction::create([
+                'user_id' => $user->id,
+                'type' => 'transfer_out',
+                'amount' => $amount,
+                'balance_before' => $ownerBalanceBefore,
+                'balance_after' => (float) $user->wallet_balance,
+                'status' => 'completed',
+                'description' => 'Pagamento da proposta: ' . $proposal->title,
+                'related_user_id' => $proposal->influencer_id,
+                'proposal_id' => $proposal->id,
+                'payment_method' => 'wallet',
+            ]);
+            
+            // Criar registro de transação para o influencer (crédito)
+            \App\Models\Transaction::create([
+                'user_id' => $proposal->influencer_id,
+                'type' => 'proposal_payment',
+                'amount' => $amount,
+                'balance_before' => $influencerBalanceBefore,
+                'balance_after' => (float) $proposal->influencer->wallet_balance,
+                'status' => 'completed',
+                'description' => 'Pagamento da proposta: ' . $proposal->title,
+                'related_user_id' => $user->id,
+                'proposal_id' => $proposal->id,
+                'payment_method' => 'wallet',
+            ]);
+            
+            // Atualizar status da proposta
+            $proposal->update([
+                'status' => 'completed',
+                'completed_at' => now()
+            ]);
+        });
+
+        return back()->with('success', 'Serviço aprovado e pagamento efetuado com sucesso!');
     }
 
     public function wallet()
@@ -761,6 +845,7 @@ class PartnerWebController extends Controller
                 'balance_before' => $user->wallet_balance + $amount,
                 'balance_after' => $user->wallet_balance,
                 'description' => "Destaque: {$place->name} - 30 dias",
+                'payment_method' => 'wallet',
                 'status' => 'completed'
             ]);
 
@@ -823,6 +908,7 @@ class PartnerWebController extends Controller
                     'balance_before' => $user->wallet_balance + floatval($plan->price),
                     'balance_after' => $user->wallet_balance,
                     'description' => "Assinatura: {$plan->name}",
+                    'payment_method' => 'wallet',
                     'status' => 'completed'
                 ]);
             }
@@ -938,15 +1024,23 @@ class PartnerWebController extends Controller
         $user = Auth::user();
         $placeIds = Place::where('owner_id', $user->id)->pluck('id');
         
-        $chats = Chat::where('place_id', $placeIds)
+                
+        $conversations = Chat::whereIn('place_id', $placeIds)
             ->with(['influencer', 'place'])
-            ->withCount(['messages as unread_count' => function($query) {
-                $query->where('is_read', false)->where('user_id', '!=', auth()->id());
-            }])
-            ->latest('updated_at')
-            ->get();
+            ->get()
+            ->map(function($chat) use ($user) {
+                $lastMessage = $chat->messages()->latest()->first();
+                return (object)[
+                    'id' => $chat->id,
+                    'influencer_name' => $chat->influencer->name,
+                    'influencer_avatar' => $chat->influencer->avatar,
+                    'last_message' => $lastMessage ? $lastMessage->message : 'Sem mensagens',
+                    'last_message_at' => $lastMessage ? $lastMessage->created_at : $chat->created_at,
+                    'unread_count' => $chat->messages()->where('sender_id', '!=', $user->id)->where('read', false)->count(),
+                ];
+            });
 
-        return view('partner.chats', compact('chats'));
+        return view('partner.chats', compact('conversations'));
     }
 
     public function showChat($id)
@@ -955,16 +1049,107 @@ class PartnerWebController extends Controller
         $chat = Chat::whereHas('place', function($query) use ($user) {
                 $query->where('owner_id', $user->id);
             })
-            ->with(['messages.user', 'influencer', 'place'])
+            ->with(['messages.sender', 'influencer', 'place'])
             ->findOrFail($id);
 
         // Marcar mensagens como lidas
         Message::where('chat_id', $chat->id)
-            ->where('user_id', '!=', $user->id)
-            ->where('is_read', false)
-            ->update(['is_read' => true]);
+            ->where('sender_id', '!=', $user->id)
+            ->where('read', false)
+            ->update(['read' => true]);
 
-        return view('partner.chat', compact('chat'));
+        $activeChat = (object)[
+            'id' => $chat->id,
+            'influencer_name' => $chat->influencer->name,
+            'influencer_avatar' => $chat->influencer->avatar,
+        ];
+
+        $messages = $chat->messages()->with('sender')->orderBy('created_at')->get();
+        
+        // Buscar propostas relacionadas a este influenciador e lugar
+        $proposals = Proposal::where('place_id', $chat->place_id)
+            ->where('influencer_id', $chat->influencer_id)
+            ->where('status', 'pending')
+            ->latest()
+            ->get();
+        
+        $conversations = Chat::whereIn('place_id', Place::where('owner_id', $user->id)->pluck('id'))
+            ->with(['influencer', 'place'])
+            ->get()
+            ->map(function($c) use ($user) {
+                $lastMessage = $c->messages()->latest()->first();
+                return (object)[
+                    'id' => $c->id,
+                    'influencer_name' => $c->influencer->name,
+                    'influencer_avatar' => $c->influencer->avatar,
+                    'last_message' => $lastMessage ? $lastMessage->message : 'Sem mensagens',
+                    'last_message_at' => $lastMessage ? $lastMessage->created_at : $c->created_at,
+                    'unread_count' => $c->messages()->where('sender_id', '!=', $user->id)->where('read', false)->count(),
+                ];
+            });
+
+        return view('partner.chats', compact('conversations', 'activeChat', 'messages', 'proposals'));
+    }
+
+    public function getInfluencers()
+    {
+        try {
+            $influencers = \App\Models\User::where('role', 'influenciador')
+                ->select('id', 'name', 'username', 'avatar')
+                ->get()
+                ->map(function($user) {
+                    $videosCount = \App\Models\Video::where('user_id', $user->id)->count();
+                    $totalViews = \App\Models\Video::where('user_id', $user->id)->sum('views_count') ?? 0;
+                    
+                    return [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'username' => $user->username ?? 'sem-username',
+                        'avatar' => $user->avatar,
+                        'videos_count' => $videosCount,
+                        'total_views' => $totalViews,
+                    ];
+                });
+
+            return response()->json(['influencers' => $influencers]);
+        } catch (\Exception $e) {
+            \Log::error('Error getting influencers: ' . $e->getMessage());
+            return response()->json(['influencers' => [], 'error' => $e->getMessage()]);
+        }
+    }
+
+    public function startChat(Request $request)
+    {
+        $request->validate([
+            'influencer_id' => 'required|exists:users,id',
+        ]);
+
+        $user = Auth::user();
+        $placeIds = Place::where('owner_id', $user->id)->pluck('id');
+        
+        if ($placeIds->isEmpty()) {
+            return response()->json(['success' => false, 'message' => 'Você precisa ter um estabelecimento cadastrado']);
+        }
+
+        // Pega o primeiro lugar do proprietário
+        $placeId = $placeIds->first();
+
+        // Verifica se já existe um chat
+        $existingChat = Chat::where('place_id', $placeId)
+            ->where('influencer_id', $request->influencer_id)
+            ->first();
+
+        if ($existingChat) {
+            return response()->json(['success' => true, 'chat_id' => $existingChat->id]);
+        }
+
+        // Cria novo chat
+        $chat = Chat::create([
+            'place_id' => $placeId,
+            'influencer_id' => $request->influencer_id,
+        ]);
+
+        return response()->json(['success' => true, 'chat_id' => $chat->id]);
     }
 
     public function sendMessage(Request $request, $id)
@@ -981,9 +1166,10 @@ class PartnerWebController extends Controller
 
         Message::create([
             'chat_id' => $chat->id,
-            'user_id' => $user->id,
+            'sender_id' => $user->id,
             'message' => $request->message,
-            'is_read' => false,
+            'type' => 'text',
+            'read' => false,
         ]);
 
         return back()->with('success', 'Mensagem enviada!');
@@ -993,8 +1179,7 @@ class PartnerWebController extends Controller
     {
         $request->validate([
             'video_id' => 'required|exists:videos,id',
-            'amount' => 'required|numeric|min:10',
-            'days' => 'required|integer|min:1|max:30',
+            'duration_days' => 'required|integer|in:7,14,30',
         ]);
 
         $user = Auth::user();
@@ -1006,43 +1191,62 @@ class PartnerWebController extends Controller
             return back()->with('error', 'Você não tem permissão para impulsionar este vídeo');
         }
 
+        // Definir preços
+        $prices = [
+            7 => 50.00,
+            14 => 90.00,
+            30 => 150.00,
+        ];
+        
+        $amount = $prices[$request->duration_days];
+
         // Verificar saldo
-        if ($user->wallet_balance < $request->amount) {
-            return back()->with('error', 'Saldo insuficiente');
+        if ($user->wallet_balance < $amount) {
+            return back()->with('error', 'Saldo insuficiente na carteira');
         }
 
         DB::beginTransaction();
         try {
-            $dailyBudget = $request->amount / $request->days;
+            $durationDays = (int) $request->duration_days;
+            $dailyBudget = $amount / $durationDays;
+            
+            // Salvar saldo antes da transação
+            $balanceBefore = (float) $user->wallet_balance;
 
             // Criar impulsionamento
-            $boost = Boost::create([
+            $boost = \App\Models\Boost::create([
                 'video_id' => $request->video_id,
                 'user_id' => $user->id,
-                'amount' => $request->amount,
-                'days' => $request->days,
+                'amount' => $amount,
+                'days' => $durationDays,
                 'daily_budget' => $dailyBudget,
+                'clicks' => 0,
+                'impressions' => 0,
+                'cpc' => 0,
+                'ctr' => 0,
                 'status' => 'active',
                 'start_date' => now(),
-                'end_date' => now()->addDays($request->days),
+                'end_date' => now()->addDays($durationDays),
             ]);
 
             // Debitar saldo
-            $user->decrement('wallet_balance', $request->amount);
+            $user->decrement('wallet_balance', $amount);
+            $user->refresh();
 
             // Registrar transação
             Transaction::create([
                 'user_id' => $user->id,
-                'type' => 'boost',
-                'amount' => -$request->amount,
-                'balance_before' => $user->wallet_balance + $request->amount,
-                'balance_after' => $user->wallet_balance,
-                'description' => "Impulsionamento de vídeo por {$request->days} dias - Budget diário: R$ " . number_format($dailyBudget, 2, ',', '.'),
+                'type' => 'highlight_purchase',
+                'amount' => $amount,
+                'balance_before' => $balanceBefore,
+                'balance_after' => (float) $user->wallet_balance,
+                'description' => "Impulsionamento de vídeo por {$durationDays} dias",
+                'payment_method' => 'wallet',
                 'status' => 'completed'
             ]);
 
             DB::commit();
-            return back()->with('success', 'Vídeo impulsionado com sucesso! Budget diário: R$ ' . number_format($dailyBudget, 2, ',', '.'));
+            return back()->with('success', 'Vídeo impulsionado com sucesso por ' . $durationDays . ' dias!');
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Erro ao impulsionar vídeo: ' . $e->getMessage());

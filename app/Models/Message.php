@@ -9,15 +9,21 @@ class Message extends Model
 {
     use HasFactory;
 
+    protected $table = 'chat_messages';
+    
+    public $timestamps = false; // A tabela só tem created_at
+
     protected $fillable = [
         'chat_id',
-        'user_id',
+        'sender_id',
         'message',
-        'is_read',
+        'type',
+        'read',
     ];
 
     protected $casts = [
-        'is_read' => 'boolean',
+        'read' => 'boolean',
+        'created_at' => 'datetime',
     ];
 
     public function chat()
@@ -25,8 +31,14 @@ class Message extends Model
         return $this->belongsTo(Chat::class);
     }
 
+    public function sender()
+    {
+        return $this->belongsTo(User::class, 'sender_id');
+    }
+    
+    // Alias para manter compatibilidade
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->sender();
     }
 }
