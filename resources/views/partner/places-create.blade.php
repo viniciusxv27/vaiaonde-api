@@ -13,7 +13,22 @@
 
     @if(session('error'))
         <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
+            <p class="font-bold"><i class="fas fa-exclamation-triangle mr-2"></i>Erro</p>
             <p>{{ session('error') }}</p>
+        </div>
+    @endif
+
+    @if ($errors->any())
+        <div class="bg-red-50 border-l-4 border-red-500 text-red-800 p-4 mb-6" role="alert">
+            <div class="flex items-center mb-2">
+                <i class="fas fa-exclamation-circle text-red-500 mr-2"></i>
+                <p class="font-bold">Existem erros no formulário. Por favor, corrija os campos destacados:</p>
+            </div>
+            <ul class="list-disc list-inside ml-4 space-y-1">
+                @foreach ($errors->all() as $error)
+                    <li class="text-sm">{{ $error }}</li>
+                @endforeach
+            </ul>
         </div>
     @endif
 
@@ -43,9 +58,11 @@
                 <div class="md:col-span-2">
                     <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nome do Estabelecimento *</label>
                     <input type="text" name="name" id="name" value="{{ old('name') }}" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('name') border-red-500 @enderror" required>
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FEB800] focus:border-transparent @error('name') border-red-500 ring-2 ring-red-500 @enderror" required>
                     @error('name')
-                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        <p class="text-red-500 text-sm mt-1 font-semibold">
+                            <i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}
+                        </p>
                     @enderror
                 </div>
 
@@ -53,7 +70,7 @@
                 <div>
                     <label for="tipe_id" class="block text-sm font-medium text-gray-700 mb-1">Tipo *</label>
                     <select name="tipe_id" id="tipe_id" onchange="loadCategories()" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FEB800] focus:border-transparent @error('tipe_id') border-red-500 @enderror" required>
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FEB800] focus:border-transparent @error('tipe_id') border-red-500 ring-2 ring-red-500 @enderror" required>
                         <option value="">Selecione o tipo</option>
                         @foreach($tipes as $tipe)
                             <option value="{{ $tipe->id }}" {{ old('tipe_id') == $tipe->id ? 'selected' : '' }}>
@@ -62,7 +79,9 @@
                         @endforeach
                     </select>
                     @error('tipe_id')
-                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        <p class="text-red-500 text-sm mt-1 font-semibold">
+                            <i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}
+                        </p>
                     @enderror
                 </div>
 
@@ -70,7 +89,7 @@
                 <div>
                     <label for="city_id" class="block text-sm font-medium text-gray-700 mb-1">Cidade *</label>
                     <select name="city_id" id="city_id" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FEB800] focus:border-transparent @error('city_id') border-red-500 @enderror" required>
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FEB800] focus:border-transparent @error('city_id') border-red-500 ring-2 ring-red-500 @enderror" required>
                         <option value="">Selecione a cidade</option>
                         @foreach($cities as $city)
                             <option value="{{ $city->id }}" {{ old('city_id') == $city->id ? 'selected' : '' }}>
@@ -79,18 +98,22 @@
                         @endforeach
                     </select>
                     @error('city_id')
-                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        <p class="text-red-500 text-sm mt-1 font-semibold">
+                            <i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}
+                        </p>
                     @enderror
                 </div>
 
                 <!-- Categorias (Múltiplas) -->
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Categorias</label>
-                    <div id="categoriesContainer" class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <div id="categoriesContainer" class="grid grid-cols-2 md:grid-cols-3 gap-3 @error('categories') border-2 border-red-500 rounded-lg p-3 @enderror">
                         <p class="text-gray-500 text-sm col-span-full">Selecione um tipo primeiro para ver as categorias disponíveis</p>
                     </div>
                     @error('categories')
-                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        <p class="text-red-500 text-sm mt-1 font-semibold">
+                            <i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}
+                        </p>
                     @enderror
                 </div>
 
@@ -98,10 +121,12 @@
                 <div>
                     <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
                     <input type="text" name="phone" id="phone" value="{{ old('phone') }}" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FEB800] focus:border-transparent @error('phone') border-red-500 @enderror"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FEB800] focus:border-transparent @error('phone') border-red-500 ring-2 ring-red-500 @enderror"
                         placeholder="(00) 00000-0000">
                     @error('phone')
-                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        <p class="text-red-500 text-sm mt-1 font-semibold">
+                            <i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}
+                        </p>
                     @enderror
                 </div>
 
@@ -111,10 +136,12 @@
                         <i class="fab fa-instagram mr-1"></i>Instagram
                     </label>
                     <input type="url" name="instagram_url" id="instagram_url" value="{{ old('instagram_url') }}" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FEB800] focus:border-transparent @error('instagram_url') border-red-500 @enderror"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FEB800] focus:border-transparent @error('instagram_url') border-red-500 ring-2 ring-red-500 @enderror"
                         placeholder="https://instagram.com/...">
                     @error('instagram_url')
-                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        <p class="text-red-500 text-sm mt-1 font-semibold">
+                            <i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}
+                        </p>
                     @enderror
                 </div>
 
@@ -124,10 +151,12 @@
                         <i class="fas fa-map-marker-alt mr-1"></i>Link Google Maps
                     </label>
                     <input type="url" name="location_url" id="location_url" value="{{ old('location_url') }}" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FEB800] focus:border-transparent @error('location_url') border-red-500 @enderror"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FEB800] focus:border-transparent @error('location_url') border-red-500 ring-2 ring-red-500 @enderror"
                         placeholder="https://maps.google.com/...">
                     @error('location_url')
-                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        <p class="text-red-500 text-sm mt-1 font-semibold">
+                            <i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}
+                        </p>
                     @enderror
                 </div>
 
@@ -137,10 +166,12 @@
                         <i class="fas fa-car mr-1"></i>Link Uber
                     </label>
                     <input type="url" name="uber_url" id="uber_url" value="{{ old('uber_url') }}" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FEB800] focus:border-transparent @error('uber_url') border-red-500 @enderror"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FEB800] focus:border-transparent @error('uber_url') border-red-500 ring-2 ring-red-500 @enderror"
                         placeholder="https://uber.com/...">
                     @error('uber_url')
-                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        <p class="text-red-500 text-sm mt-1 font-semibold">
+                            <i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}
+                        </p>
                     @enderror
                 </div>
 
@@ -150,10 +181,12 @@
                         <i class="fas fa-location-dot mr-1"></i>Localização (Texto)
                     </label>
                     <input type="text" name="location" id="location" value="{{ old('location') }}" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FEB800] focus:border-transparent @error('location') border-red-500 @enderror"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FEB800] focus:border-transparent @error('location') border-red-500 ring-2 ring-red-500 @enderror"
                         placeholder="Ex: Centro, Vitória - ES">
                     @error('location')
-                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        <p class="text-red-500 text-sm mt-1 font-semibold">
+                            <i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}
+                        </p>
                     @enderror
                 </div>
 
@@ -163,12 +196,14 @@
                         <i class="fas fa-image mr-1"></i>Logo do Estabelecimento *
                     </label>
                     <input type="file" name="logo" id="logo" accept="image/*" required onchange="previewLogo(event)"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('logo') border-red-500 @enderror">
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FEB800] focus:border-transparent @error('logo') border-red-500 ring-2 ring-red-500 @enderror">
                     @error('logo')
-                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        <p class="text-red-500 text-sm mt-1 font-semibold">
+                            <i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}
+                        </p>
                     @enderror
                     <p class="text-xs text-gray-500 mt-1">
-                        <i class="fas fa-info-circle"></i> Logo/ícone do estabelecimento (será exibido em miniatura)
+                        <i class="fas fa-info-circle"></i> Logo/ícone do estabelecimento (será exibido em miniatura). Máx. 5MB.
                     </p>
                     <div id="logoPreview" class="mt-4"></div>
                 </div>
@@ -179,13 +214,17 @@
                         <i class="fas fa-images mr-1"></i>Imagens do Estabelecimento (Múltiplas) *
                     </label>
                     <input type="file" name="images[]" id="images" accept="image/*" multiple required onchange="previewMultipleImages(event)"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('images.*') border-red-500 @enderror">
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FEB800] focus:border-transparent @error('images.*') border-red-500 ring-2 ring-red-500 @enderror @error('images') border-red-500 ring-2 ring-red-500 @enderror">
                     <input type="hidden" name="card_image_index" id="card_image_index" value="0">
                     @error('images')
-                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        <p class="text-red-500 text-sm mt-1 font-semibold">
+                            <i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}
+                        </p>
                     @enderror
                     @error('images.*')
-                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        <p class="text-red-500 text-sm mt-1 font-semibold">
+                            <i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}
+                        </p>
                     @enderror
                     <p class="text-xs text-gray-500 mt-1">
                         <i class="fas fa-info-circle"></i> Selecione múltiplas imagens (máx. 5MB cada). Clique em uma imagem para defini-la como principal (imagem do card).
@@ -193,14 +232,22 @@
                     <div id="imagePreview" class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4"></div>
                 </div>
 
-                <!-- Descrição -->
+                <!-- Descrição/Review (Campo de texto longo) -->
                 <div class="md:col-span-2">
-                    <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
-                    <textarea name="description" id="description" rows="4" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('description') border-red-500 @enderror">{{ old('description') }}</textarea>
+                    <label for="description" class="block text-sm font-medium text-gray-700 mb-1">
+                        <i class="fas fa-align-left mr-1"></i>Descrição / Review do Estabelecimento
+                    </label>
+                    <textarea name="description" id="description" rows="6" 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FEB800] focus:border-transparent @error('description') border-red-500 ring-2 ring-red-500 @enderror" 
+                        placeholder="Conte sobre seu estabelecimento, serviços, diferenciais, horários especiais, etc. Sem limite de caracteres!">{{ old('description') }}</textarea>
                     @error('description')
-                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        <p class="text-red-500 text-sm mt-1 font-semibold">
+                            <i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}
+                        </p>
                     @enderror
+                    <p class="text-xs text-gray-500 mt-1">
+                        <i class="fas fa-info-circle"></i> Escreva uma descrição completa do seu estabelecimento (sem limite de caracteres)
+                    </p>
                 </div>
 
                 <!-- Endereço -->
@@ -208,21 +255,33 @@
                     <label for="address" class="block text-sm font-medium text-gray-700 mb-1">Endereço</label>
                     <div class="flex gap-2">
                         <input type="text" name="address" id="address" value="{{ old('address') }}" 
-                            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('address') border-red-500 @enderror">
-                        <button type="button" onclick="searchAddress()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition">
+                            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FEB800] focus:border-transparent @error('address') border-red-500 ring-2 ring-red-500 @enderror">
+                        <button type="button" onclick="searchAddress()" class="bg-[#FEB800] hover:bg-yellow-500 text-black px-4 py-2 rounded-lg transition font-semibold">
                             <i class="fas fa-search"></i> Buscar
                         </button>
                     </div>
                     @error('address')
-                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        <p class="text-red-500 text-sm mt-1 font-semibold">
+                            <i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}
+                        </p>
                     @enderror
                 </div>
 
                 <!-- Mapa -->
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Localização no Mapa</label>
-                    <div id="map" style="height: 400px;" class="rounded-lg border border-gray-300"></div>
+                    <div id="map" style="height: 400px;" class="rounded-lg border border-gray-300 @error('latitude') border-red-500 @enderror @error('longitude') border-red-500 @enderror"></div>
                     <p class="text-xs text-gray-500 mt-1">Clique no mapa para definir a localização do seu estabelecimento</p>
+                    @error('latitude')
+                        <p class="text-red-500 text-sm mt-1 font-semibold">
+                            <i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}
+                        </p>
+                    @enderror
+                    @error('longitude')
+                        <p class="text-red-500 text-sm mt-1 font-semibold">
+                            <i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}
+                        </p>
+                    @enderror
                     <input type="hidden" name="latitude" id="latitude" value="{{ old('latitude') }}">
                     <input type="hidden" name="longitude" id="longitude" value="{{ old('longitude') }}">
                 </div>
@@ -232,7 +291,7 @@
                 <a href="{{ route('partner.places') }}" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-lg font-semibold transition">
                     Cancelar
                 </a>
-                <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold transition">
+                <button type="submit" class="bg-[#FEB800] hover:bg-yellow-500 text-black px-6 py-2 rounded-lg font-semibold transition">
                     <i class="fas fa-save mr-2"></i>Cadastrar Estabelecimento
                 </button>
             </div>
