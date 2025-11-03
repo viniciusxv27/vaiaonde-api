@@ -579,31 +579,134 @@ class InfluencerWebController extends Controller
             $video = $request->file('video');
             $thumbnail = $request->file('thumbnail');
 
-            \Log::info('Arquivos validados, iniciando upload para R2');
+            \Log::info('Arquivos validados, iniciando upload');
 
-            // Upload do vídeo para R2
+            // Upload do vídeo - tenta R2 primeiro, depois local como fallback
             $videoFilename = time() . '_' . uniqid() . '.' . $video->getClientOriginalExtension();
             $videoPath = 'videos/' . $videoFilename;
+            $videoUrl = null;
             
             \Log::info('Tentando fazer upload do vídeo', ['path' => $videoPath, 'size' => $video->getSize()]);
             
-            // Usar putFileAs ao invés de put com file_get_contents para economizar memória
-            $uploadedPath = Storage::disk('r2')->putFileAs('videos', $video, $videoFilename, 'public');
-            $videoUrl = env('R2_PUBLIC_URL') . '/' . $uploadedPath;
+            // Verificar se R2 está configurado E se o pacote AWS S3 está instalado
+            $r2Configured = false;
             
-            \Log::info('Upload do vídeo concluído', ['url' => $videoUrl]);
+            $r2AccessKey = env('R2_ACCESS_KEY_ID');
+            $r2SecretKey = env('R2_SECRET_ACCESS_KEY');
+            $r2Bucket = env('R2_BUCKET');
+            $r2PublicUrl = env('R2_PUBLIC_URL');
+            
+            \Log::info('Verificando configuração R2', [
+                'has_access_key' => !empty($r2AccessKey),
+                'has_secret_key' => !empty($r2SecretKey),
+                'has_bucket' => !empty($r2Bucket),
+                'has_public_url' => !empty($r2PublicUrl),
+                'class_exists' => class_exists('League\Flysystem\AwsS3V3\AwsS3V3Adapter')
+            ]);
+            
+            if ($r2AccessKey && $r2SecretKey && $r2Bucket) {
+                // Verificar se a classe necessária existe
+                if (class_exists('League\Flysystem\AwsS3V3\AwsS3V3Adapter')) {
+                    $r2Configured = true;
+                    \Log::info('R2/S3 configurado e pacote instalado - Upload para nuvem será usado');
+                } else {
+                    \Log::warning('R2 configurado mas pacote AWS S3 não instalado. Use: composer require league/flysystem-aws-s3-v3');
+                }
+            } else {
+                \Log::info('R2 não configurado completamente - usando armazenamento local', [
+                    'missing_vars' => array_filter([
+                        'R2_ACCESS_KEY_ID' => empty($r2AccessKey) ? 'faltando' : null,
+                        'R2_SECRET_ACCESS_KEY' => empty($r2SecretKey) ? 'faltando' : null,
+                        'R2_BUCKET' => empty($r2Bucket) ? 'faltando' : null,
+                    ])
+                ]);
+            }
+            
+            if ($r2Configured) {
+                try {
+                    \Log::info('Tentando upload para R2/Cloudflare');
+                    
+                    // Usar putFileAs ao invés de put com file_get_contents para economizar memória
+                    $uploadedPath = Storage::disk('r2')->putFileAs('videos', $video, $videoFilename, 'public');
+                    $videoUrl = env('R2_PUBLIC_URL') . '/' . $uploadedPath;
+                    
+                    \Log::info('Upload do vídeo para R2 concluído', ['url' => $videoUrl]);
+                } catch (\Exception $r2Error) {
+                    \Log::warning('Falha no upload para R2, tentando armazenamento local', [
+                        'error' => $r2Error->getMessage(),
+                        'file' => $r2Error->getFile(),
+                        'line' => $r2Error->getLine()
+                    ]);
+                    $r2Configured = false; // Força fallback para local
+                }
+            }
+            
+            // Fallback: upload local se R2 não estiver configurado ou falhar
+            if (!$r2Configured || !$videoUrl) {
+                \Log::info('Usando armazenamento local como fallback');
+                
+                // Garantir que o diretório existe
+                $uploadDir = public_path('uploads/videos');
+                if (!file_exists($uploadDir)) {
+                    mkdir($uploadDir, 0755, true);
+                    \Log::info('Diretório de vídeos criado', ['path' => $uploadDir]);
+                }
+                
+                // Salvar arquivo diretamente (retorna apenas o nome do arquivo)
+                $video->move($uploadDir, $videoFilename);
+                
+                // Construir URL correta (sem duplicação)
+                $appUrl = rtrim(env('APP_URL'), '/');
+                $videoUrl = $appUrl . '/uploads/videos/' . $videoFilename;
+                
+                \Log::info('Upload do vídeo para disco local concluído', [
+                    'path' => $uploadDir . '/' . $videoFilename,
+                    'url' => $videoUrl
+                ]);
+            }
 
-            // Upload da thumbnail para R2
+            // Upload da thumbnail - mesma lógica de fallback
             $thumbnailUrl = null;
             if ($thumbnail) {
                 $thumbnailFilename = time() . '_thumb_' . uniqid() . '.' . $thumbnail->getClientOriginalExtension();
                 
                 \Log::info('Tentando fazer upload da thumbnail');
                 
-                $uploadedThumbPath = Storage::disk('r2')->putFileAs('thumbnails', $thumbnail, $thumbnailFilename, 'public');
-                $thumbnailUrl = env('R2_PUBLIC_URL') . '/' . $uploadedThumbPath;
+                // Usar mesma lógica: R2 se disponível, senão local
+                $thumbnailUploaded = false;
                 
-                \Log::info('Upload da thumbnail concluído', ['url' => $thumbnailUrl]);
+                if ($r2Configured && class_exists('League\Flysystem\AwsS3V3\AwsS3V3Adapter')) {
+                    try {
+                        $uploadedThumbPath = Storage::disk('r2')->putFileAs('thumbnails', $thumbnail, $thumbnailFilename, 'public');
+                        $thumbnailUrl = env('R2_PUBLIC_URL') . '/' . $uploadedThumbPath;
+                        $thumbnailUploaded = true;
+                        \Log::info('Upload da thumbnail para R2 concluído', ['url' => $thumbnailUrl]);
+                    } catch (\Exception $thumbError) {
+                        \Log::warning('Falha no upload da thumbnail para R2, usando local', [
+                            'error' => $thumbError->getMessage()
+                        ]);
+                    }
+                }
+                
+                // Fallback local para thumbnail
+                if (!$thumbnailUploaded) {
+                    $thumbDir = public_path('uploads/thumbnails');
+                    if (!file_exists($thumbDir)) {
+                        mkdir($thumbDir, 0755, true);
+                    }
+                    
+                    // Salvar arquivo diretamente
+                    $thumbnail->move($thumbDir, $thumbnailFilename);
+                    
+                    // Construir URL correta
+                    $appUrl = rtrim(env('APP_URL'), '/');
+                    $thumbnailUrl = $appUrl . '/uploads/thumbnails/' . $thumbnailFilename;
+                    
+                    \Log::info('Upload da thumbnail para disco local concluído', [
+                        'path' => $thumbDir . '/' . $thumbnailFilename,
+                        'url' => $thumbnailUrl
+                    ]);
+                }
             }
 
             // Determinar se está ativo baseado no status
@@ -633,7 +736,12 @@ class InfluencerWebController extends Controller
                 'shares_count' => 0,
             ]);
 
-            \Log::info('Vídeo criado no banco de dados', ['id' => $videoRecord->id]);
+            \Log::info('Vídeo criado no banco de dados', [
+                'id' => $videoRecord->id,
+                'video_url' => $videoUrl,
+                'thumbnail_url' => $thumbnailUrl,
+                'storage_type' => $r2Configured ? 'R2/Cloudflare' : 'Local'
+            ]);
 
             DB::commit();
             \Log::info('=== UPLOAD CONCLUÍDO COM SUCESSO ===');
@@ -673,15 +781,39 @@ class InfluencerWebController extends Controller
             \Log::error('Arquivo: ' . $e->getFile() . ':' . $e->getLine());
             \Log::error('Trace: ' . $e->getTraceAsString());
             
+            // Identificar tipo de erro específico
+            $errorMessage = 'Erro ao fazer upload: ';
+            
+            if (strpos($e->getMessage(), 'The file') !== false && strpos($e->getMessage(), 'was not uploaded') !== false) {
+                $errorMessage .= 'Arquivo não foi enviado corretamente. Verifique o tamanho do arquivo e a configuração do servidor.';
+            } elseif (strpos($e->getMessage(), 'size exceeds') !== false || strpos($e->getMessage(), 'upload_max_filesize') !== false) {
+                $errorMessage .= 'Arquivo muito grande. Máximo permitido: ' . ini_get('upload_max_filesize');
+            } elseif (strpos($e->getMessage(), 'disk') !== false || strpos($e->getMessage(), 'storage') !== false) {
+                $errorMessage .= 'Erro ao salvar arquivo no servidor. Verifique permissões de escrita.';
+            } elseif (strpos($e->getMessage(), 'S3') !== false || strpos($e->getMessage(), 'R2') !== false || strpos($e->getMessage(), 'Cloudflare') !== false) {
+                $errorMessage .= 'Erro na conexão com R2/Cloudflare. Verificando credenciais...';
+            } elseif (strpos($e->getMessage(), 'cURL') !== false || strpos($e->getMessage(), 'Connection') !== false) {
+                $errorMessage .= 'Erro de conexão com o servidor de armazenamento. Tente novamente.';
+            } else {
+                $errorMessage .= $e->getMessage();
+            }
+            
+            \Log::error('Mensagem formatada para usuário: ' . $errorMessage);
+            
             // Se for AJAX, retornar JSON
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Erro ao fazer upload: ' . $e->getMessage()
+                    'message' => $errorMessage,
+                    'debug' => config('app.debug') ? [
+                        'exception' => get_class($e),
+                        'file' => $e->getFile(),
+                        'line' => $e->getLine(),
+                    ] : null
                 ], 500);
             }
             
-            return back()->withErrors(['video' => 'Erro ao fazer upload: ' . $e->getMessage()])->withInput();
+            return back()->withErrors(['video' => $errorMessage])->withInput();
         }
     }
 
